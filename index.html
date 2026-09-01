@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECB Money Printer — Rastreador de la masa monetaria de la eurozona en tiempo real</title>
+    <meta name="description" content="Mira crecer la masa monetaria de la eurozona en tiempo real: ~20.000 € creados cada segundo. M3, M1, M2 e inflación HICP con datos oficiales del BCE. / Watch the eurozone money supply grow in real time with official ECB data.">
+    <meta property="og:title" content="ECB Money Printer — Real-Time Eurozone M3 Tracker">
+    <meta property="og:description" content="Watch the eurozone money supply grow in real time. ~€20,000 created every second. See how your euro loses value while you scroll.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="ECB Money Printer — Real-Time Eurozone M3 Tracker">
+    <meta name="twitter:description" content="Watch the eurozone money supply grow in real time. ~€20,000 created every second.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%2307080a' stroke='%23ffd700' stroke-width='1.5'/%3E%3Ctext x='12' y='17' text-anchor='middle' font-size='14' font-weight='bold' fill='%23ffd700' font-family='monospace'%3E%E2%82%AC%3C/text%3E%3C/svg%3E">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {"@type": "Question", "name": "What is ECB money printing?", "acceptedAnswer": {"@type": "Answer", "text": "The ECB creates digital money when it buys bonds (quantitative easing) or lends to banks (TLTROs, refinancing operations). Its balance sheet grew from ~€2 trillion to ~€8.8 trillion between 2015 and 2022. Most new money, however, is created by commercial banks when they extend credit."}},
+            {"@type": "Question", "name": "What is M3?", "acceptedAnswer": {"@type": "Answer", "text": "M3 is the broadest monetary aggregate of the eurozone: M1 (cash and sight deposits) plus M2 (short-term savings deposits) plus money-market instruments. The ECB publishes it monthly. It currently stands at about €17.6 trillion, almost four times what existed when the euro was created in 1999."}},
+            {"@type": "Question", "name": "Where does the euros-per-second figure come from?", "acceptedAnswer": {"@type": "Answer", "text": "From the latest monthly M3 observations published by the ECB. The average change of the last three months is divided by the seconds in an average month. It is a linear approximation and the counter can run backwards in contracting months."}},
+            {"@type": "Question", "name": "What does money printing have to do with inflation?", "acceptedAnswer": {"@type": "Answer", "text": "When more money enters the economy but goods and services do not grow at the same pace, each euro buys less. Per the official HICP, eurozone prices are now roughly 85% higher than at the end of 1996, with a typical 12-18 month lag between monetary expansion and prices."}},
+            {"@type": "Question", "name": "Where does the data come from?", "acceptedAnswer": {"@type": "Answer", "text": "All data comes from the ECB Data Portal (CC BY 4.0 license). M3 uses a changing eurozone composition, and the HICP series chains the 2015=100 base with the 2025=100 base introduced in February 2026."}}
+        ]
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header>
+    <div class="header-brand">
+        <a href="#">
+            <div class="header-logo">
+                <span class="logo-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21h18v-2H3v2zm0-4h18v-1H3v1zM5 14h2V9H5v5zm4 0h2V9H9v5zm4 0h2V9h-2v5zm4 0h2V9h-2v5zM3 7l9-5 9 5v1H3V7z" fill="#ff3b3b"/></svg></span>
+                <span class="fed">ECB</span>
+                <span class="mp">Money Printer</span>
+            </div>
+            <span class="brrr-tag">BRRR</span>
+        </a>
+    </div>
+    <div class="header-right">
+        <nav class="header-links">
+            <a href="#" class="active" data-i18n="nav.home"></a>
+            <a href="#m3-growth" data-i18n="nav.chart"></a>
+            <a href="#inflation" data-i18n="nav.prices"></a>
+            <a href="#faq" data-i18n="nav.faq"></a>
+        </nav>
+        <div class="lang-toggle">
+            <button class="lang-btn" data-lang="es">ES</button>
+            <button class="lang-btn" data-lang="en">EN</button>
+        </div>
+    </div>
+</header>
+
+<main>
+    <section class="hero">
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content">
+            <div class="hero-eyebrow" data-i18n="hero.eyebrow"></div>
+            <h1 class="hero-headline">
+                <span data-i18n="hero.pre"></span><br>
+                <span class="highlight" id="headlineAmount"></span><br>
+                <span data-i18n="hero.post"></span>
+            </h1>
+
+            <div class="counter-block">
+                <div class="counter-glow"></div>
+                <div class="hero-counter" id="heroCounter"></div>
+            </div>
+
+            <div class="rate-line">
+                <span class="rate-dot"></span>
+                <span class="rate-text">
+                    <span data-i18n="rate.pre"></span>
+                    <strong id="rateValue"></strong>
+                    <span data-i18n="rate.post"></span>
+                </span>
+                <span class="chip" id="lastOfficialChip"></span>
+            </div>
+
+            <p class="hero-sub" id="heroSub"></p>
+        </div>
+    </section>
+
+    <div class="stats-strip">
+        <div class="stats-strip-item"><div class="stats-strip-label" data-i18n="stats.sec"></div><div class="stats-strip-value" id="statSec"></div></div>
+        <div class="stats-strip-item"><div class="stats-strip-label" data-i18n="stats.min"></div><div class="stats-strip-value" id="statMin"></div></div>
+        <div class="stats-strip-item"><div class="stats-strip-label" data-i18n="stats.hour"></div><div class="stats-strip-value" id="statHour"></div></div>
+        <div class="stats-strip-item"><div class="stats-strip-label" data-i18n="stats.day"></div><div class="stats-strip-value" id="statDay"></div></div>
+    </div>
+
+    <div class="m3-section" id="m3-growth">
+        <div class="m3-header">
+            <h2 class="m3-title" data-reveal data-i18n="chart.title"></h2>
+            <button class="info-btn" aria-label="What is M3?">
+                i
+                <div class="info-tooltip" data-i18n-html="chart.info"></div>
+            </button>
+        </div>
+        <p class="m3-sub" id="chartSub"></p>
+        <div class="m3-chart-wrap">
+            <div class="m3-chart" id="m3Chart"></div>
+            <div class="m3-years" id="m3Years"></div>
+        </div>
+    </div>
+
+    <div class="quote-break">
+        <blockquote data-i18n="quote.text"></blockquote>
+        <cite data-i18n="quote.cite"></cite>
+    </div>
+
+    <div class="inflation-section" id="inflation">
+        <div class="inflation-header">
+            <h2 class="inflation-title" data-reveal>
+                <span data-i18n="infl.title.pre"></span>
+                <span class="red" data-i18n="infl.title.red"></span>
+            </h2>
+            <p class="inflation-sub" data-i18n="infl.sub"></p>
+        </div>
+
+        <div class="inflation-glass">
+            <div class="slider-block">
+                <div class="slider-year-display" id="sliderYear">1996</div>
+                <div class="slider-track-wrap">
+                    <div class="slider-track-label" data-i18n="infl.sliderLabel"></div>
+                    <input type="range" id="yearSlider" min="0" max="6" step="1" value="0">
+                </div>
+            </div>
+
+            <div class="price-grid" id="priceGrid"></div>
+
+            <div class="price-notes">
+                <p class="price-note" data-i18n="infl.hicpNote"></p>
+                <p class="price-note" data-i18n="infl.approxNote"></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="faq-section" id="faq">
+        <h2 class="faq-title" data-i18n="faq.title"></h2>
+        <div id="faqList"></div>
+    </div>
+</main>
+
+<footer>
+    <p class="footer-main">
+        <span data-i18n="footer.made"></span>
+        <a href="https://data.ecb.europa.eu/" target="_blank" rel="noopener">ECB Data Portal</a><span data-i18n="footer.license"></span>
+    </p>
+    <p class="footer-note" data-i18n="footer.estimate"></p>
+</footer>
+
+<script src="assets/i18n.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
