@@ -375,15 +375,25 @@ function setLang(lang) {
     tick();
 }
 
+async function loadData() {
+    for (const src of ['api/data', 'data/data.json']) {
+        try {
+            const res = await fetch(src, { cache: 'no-store' });
+            if (!res.ok) throw new Error(String(res.status));
+            return await res.json();
+        } catch (err) {
+            // prueba la siguiente fuente (API -> snapshot estatico)
+        }
+    }
+    return null;
+}
+
 async function init() {
     state.lang = detectLang();
     bindEvents();
 
-    try {
-        const res = await fetch('data/data.json', { cache: 'no-cache' });
-        if (!res.ok) throw new Error(res.status);
-        state.data = await res.json();
-    } catch (err) {
+    state.data = await loadData();
+    if (!state.data) {
         applyI18n();
         $('#heroSub').textContent = t('error.load');
         return;
