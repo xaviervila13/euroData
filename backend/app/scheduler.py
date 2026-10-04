@@ -12,7 +12,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from . import db, etl
 
-log = logging.getLogger("europrinter.scheduler")
+log = logging.getLogger("esproblemas.scheduler")
 
 _lock = threading.Lock()
 STALE_DAYS = int(os.environ.get("ETL_STALE_DAYS", "40"))

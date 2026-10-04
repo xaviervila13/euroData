@@ -52,7 +52,7 @@ function selectIn(root, sel) {
 
 function parseHTML(html) {
     const made = [];
-    const re = /<(\/)?([a-z]+)([^>]*)>/g;
+    const re = /<(\/)?([a-zA-Z]+)([^>]*)>/g;
     const stack = [];
     let pos = 0;
     const attach = (node) => {
@@ -61,7 +61,7 @@ function parseHTML(html) {
     };
     let m;
     while ((m = re.exec(html))) {
-        const closing = m[1], tag = m[2], attrs = m[3] || '';
+        const closing = m[1], tag = m[2].toLowerCase(), attrs = m[3] || '';
         const between = html.slice(pos, m.index);
         if (between && stack.length) stack[stack.length - 1]._text += between.trim();
         pos = re.lastIndex;
@@ -90,8 +90,10 @@ const document = {
     createElement: (tag) => el(tag)
 };
 
-['#headlineAmount', '#rateValue', '#heroSub', '#lastOfficialChip', '#statSec', '#statMin', '#statHour', '#statDay',
-    '#chartSub', '#m3Chart', '#m3Years', '#priceGrid', '#faqList', '#heroCounter', '#yearSlider', '#sliderYear'
+['#heroCounter', '#rateValue', '#lastOfficialChip', '#statSec', '#statMin', '#statHour', '#statDay',
+    '#moneyAmount', '#moneySub', '#moneyChartSub', '#m3Chart', '#m3Years',
+    '#housingMetrics', '#housingCharts', '#housingMyths', '#housingCauses', '#housingSolutions',
+    '#housingSources', '#priceGrid', '#faqList', '#yearSlider', '#sliderYear'
 ].forEach(sel => {
     const node = el('div');
     if (sel === '#yearSlider') { node.max = '6'; node.value = '0'; node.min = '0'; }
@@ -100,15 +102,19 @@ const document = {
 
 const langBtns = [el('button'), el('button')];
 langBtns[0].dataset.lang = 'es'; langBtns[1].dataset.lang = 'en';
-const i18nEls = [];
-['nav.home', 'hero.eyebrow', 'hero.pre', 'hero.post', 'rate.pre', 'rate.post', 'stats.sec', 'stats.min',
-    'stats.hour', 'stats.day', 'chart.title', 'chart.info', 'quote.text', 'quote.cite', 'infl.title.pre',
-    'infl.title.red', 'infl.sub', 'infl.sliderLabel', 'infl.hicpNote', 'infl.approxNote', 'faq.title',
-    'footer.made', 'footer.license', 'footer.estimate'
-].forEach(k => { const n = el('span'); n.dataset.i18n = k; i18nEls.push(n); });
 document.registerAll('.lang-btn', langBtns);
+
+const i18nKeys = ['nav.housing', 'nav.money', 'nav.faq', 'site.eyebrow', 'site.title', 'site.lede',
+    'live.label', 'rate.pre', 'rate.post', 'stats.sec', 'stats.min', 'stats.hour', 'stats.day',
+    'housing.eyebrow', 'housing.title', 'housing.lede', 'housing.chartsTitle', 'housing.mythsTitle',
+    'housing.causesTitle', 'housing.solutionsTitle', 'housing.sourcesTitle', 'housing.disclaimer',
+    'money.eyebrow', 'money.pre', 'money.post', 'money.chart.title', 'quote.text', 'quote.cite',
+    'infl.title.pre', 'infl.title.red', 'infl.sub', 'infl.sliderLabel', 'infl.hicpNote', 'infl.approxNote',
+    'faq.title', 'footer.made', 'footer.license', 'footer.estimate'];
+const i18nEls = i18nKeys.map(k => { const n = el('span'); n.dataset.i18n = k; return n; });
 document.registerAll('[data-i18n]', i18nEls);
-document.registerAll('[data-i18n-html]', []);
+const htmlEl = el('div'); htmlEl.dataset.i18nHtml = 'money.chart.info';
+document.registerAll('[data-i18n-html]', [htmlEl]);
 document.registerAll('[data-reveal], #m3Chart', [document._els['#m3Chart']]);
 
 global.document = document;
@@ -135,36 +141,61 @@ const i18nSrc = fs.readFileSync(path.join(FRONTEND, 'assets/i18n.js'), 'utf8');
 
     const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; } else console.log('OK:', msg); };
     const els = document._els;
+    const housing = DATA.problems.housing;
 
     assert(fetched[0] === 'api/data', 'la primera fuente es la API');
     assert(document.documentElement.lang === 'es', 'idioma inicial ES');
 
     const rate = Math.round(DATA.monetary.m3.perSecond).toLocaleString('es-ES');
     assert(els['#rateValue'].textContent === rate + ' €', 'ritmo ES coincide con el dato: ' + els['#rateValue'].textContent);
-
     const kids = els['#heroCounter'].children;
     assert(kids[kids.length - 1].textContent === '€', 'odómetro termina en € (ES)');
-    assert(kids[0]._class.has('odometer-slot'), 'odómetro empieza con dígito');
+    assert(els['#moneyAmount'].textContent.includes('bill€'), 'importe dinero: ' + els['#moneyAmount'].textContent);
+    assert(els['#lastOfficialChip'].textContent.includes('M3'), 'chip último dato M3');
 
-    assert(els['#lastOfficialChip'].textContent.includes(DATA.meta.lastOfficial.monetary.slice(0, 4)), 'chip último dato oficial');
-    assert(els['#m3Chart'].children.length === 12, 'gráfico: 12 columnas');
-    assert(els['#m3Years'].children.length === 12, 'gráfico: 12 etiquetas');
-    assert(els['#priceGrid'].children.length === DATA.hicp.categories.length + DATA.items.length, 'tarjetas precios');
-    assert(els['#faqList'].children.length === 8, 'FAQ: 8 preguntas');
+    assert(els['#housingMetrics'].children.length === housing.metrics.filter(m => m.value != null).length,
+        'tarjetas de métricas: ' + els['#housingMetrics'].children.length);
+    assert(els['#housingCharts'].children.length === housing.charts.length,
+        'gráficos de vivienda: ' + els['#housingCharts'].children.length);
 
-    const card = els['#priceGrid'].children[0];
-    assert(card.querySelector('.price-card-name').textContent === 'Índice general', 'nombre tarjeta ES');
-    assert(/^\+\d+%$/.test(card.querySelector('.price-card-change').textContent), 'badge de cambio con %');
+    const firstChart = els['#housingCharts'].children[0];
+    assert(firstChart.querySelector('.chart-title').textContent === 'Precio de la vivienda (índice, 2015=100)',
+        'título del gráfico HPI: ' + firstChart.querySelector('.chart-title').textContent);
+    const chartHtml = firstChart.querySelector('.chart-body').innerHTML;
+    assert(chartHtml.includes('<svg'), 'el gráfico renderiza SVG');
+    assert((chartHtml.match(/<text/g) || []).length >= 8, 'ejes con etiquetas: ' + (chartHtml.match(/<text/g) || []).length);
+    assert(chartHtml.includes('pico 2007'), 'marca del pico 2007');
+    const solutionsTitle = i18nEls.find(e => e.dataset.i18n === 'housing.solutionsTitle');
+    assert(solutionsTitle.textContent === 'Soluciones al problema', 'título de soluciones: ' + solutionsTitle.textContent);
+    const popChart = housing.charts.find(c => c.id === 'population');
+    assert(popChart.series[0][0] === '2005', 'población arranca en 2005 (horizonte común): ' + popChart.series[0][0]);
+    assert(els['#housingMyths'].children.length === 4, 'mitos: 4');
+    assert(els['#housingCauses'].children.length === 5, 'causas: 5');
+    assert(els['#housingSolutions'].children.length === 5, 'soluciones: 5');
+    assert(els['#housingSources'].children.length === housing.sources.length + 3, 'fuentes: datos + referencias');
+
+    const hpiMetric = els['#housingMetrics'].children[0];
+    assert(hpiMetric.querySelector('.metric-label').textContent.includes('2015=100'), 'etiqueta métrica HPI');
+    assert(/\+[\d.,]+%/.test(hpiMetric.querySelector('.metric-extra').textContent),
+        'extra de la métrica HPI: ' + hpiMetric.querySelector('.metric-extra').textContent);
+
+    assert(els['#m3Chart'].children.length === 12, 'gráfico M3: 12 columnas');
+    assert(els['#priceGrid'].children.length === DATA.hicp.categories.length + DATA.items.length, 'tarjetas de precios');
+    assert(els['#faqList'].children.length === 10, 'FAQ: 10 preguntas');
+    assert(els['#faqList'].children[0].querySelector('.faq-tag').textContent === 'Vivienda', 'tag FAQ vivienda');
+    assert(els['#faqList'].children[0].querySelector('.faq-q').textContent.startsWith('¿Por qué'), 'primera FAQ en ES');
 
     updatePrices(6);
-    assert(card.querySelector('.price-card-change').textContent === 'HOY', 'badge HOY en el extremo derecho');
-    assert(els['#sliderYear'].textContent === 'HOY', 'display del slider = HOY');
+    assert(els['#sliderYear'].textContent === 'HOY', 'slider de precios en HOY');
 
     setLang('en');
     assert(document.documentElement.lang === 'en', 'cambio a EN');
-    assert(els['#headlineAmount'].textContent.includes('€') && els['#headlineAmount'].textContent.includes('T'), 'headline EN con € y T');
-    assert(els['#priceGrid'].children[0].querySelector('.price-card-name').textContent === 'All items', 'nombre tarjeta EN');
-    assert(els['#faqList'].children[0].querySelector('.faq-q').textContent.startsWith('What is'), 'FAQ EN');
+    assert(els['#moneyAmount'].textContent.includes('T'), 'importe dinero en EN: ' + els['#moneyAmount'].textContent);
+    assert(els['#housingCharts'].children[0].querySelector('.chart-title').textContent === 'House price index (2015=100)',
+        'título del gráfico en EN');
+    assert(els['#housingMyths'].children[0].querySelector('.myth-q').textContent.includes('speculation'), 'mito en EN');
+    assert(els['#housingMetrics'].children.length === housing.metrics.filter(m => m.value != null).length,
+        'métricas tras cambio de idioma');
 
     console.log(process.exitCode ? 'TESTS FAILED' : 'ALL TESTS PASSED');
 })();

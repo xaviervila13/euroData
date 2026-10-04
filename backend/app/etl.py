@@ -1,4 +1,4 @@
-"""Orquestacion del ETL: descarga del BCE y persistencia en Postgres."""
+"""Orquestacion del ETL: descarga de fuentes oficiales y persistencia en Postgres."""
 
 from __future__ import annotations
 
@@ -7,9 +7,10 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import db, ecb
+from . import db, housing, payload
+from .sources import ecb
 
-log = logging.getLogger("europrinter.etl")
+log = logging.getLogger("esproblemas.etl")
 
 
 def run(pool, full: bool = False) -> dict:
@@ -20,7 +21,7 @@ def run(pool, full: bool = False) -> dict:
     run_id = db.start_run(pool, mode)
     log.info("ETL %s iniciado (run %d)", mode, run_id)
     try:
-        store = ecb.download_all(full)
+        store = {**ecb.download_all(full), **housing.download_all()}
         rows = 0
         for series, data in store.items():
             rows += db.upsert_obs(pool, series, data)
@@ -36,11 +37,11 @@ def run(pool, full: bool = False) -> dict:
 
 def write_snapshot(pool, path: str | Path) -> Path:
     """Genera un data.json de respaldo (fallback offline del frontend)."""
-    payload = ecb.build_payload(db.load_store(pool))
+    data = payload.build_payload(db.load_store(pool))
     out = Path(path)
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".tmp")
-    tmp.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
+    tmp.write_text(json.dumps(data, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
     tmp.replace(out)
     log.info("snapshot escrito en %s", out)
     return out

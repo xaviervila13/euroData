@@ -17,6 +17,14 @@ const ICONS = {
 
 const CAT_ICONS = { '000000': 'euro', '011000': 'food', '045000': 'bolt', '041100': 'house', '070000': 'car', '111000': 'fork' };
 const CHART_YEARS = [1980, 1990, 1999, 2005, 2010, 2015, 2019, 2020, 2021, 2022, 2024, null];
+const CHART_SOURCES = {
+    hpi: 'Eurostat · prc_hpi_q',
+    permits: 'Eurostat · sts_cobp_a',
+    population: 'Eurostat · demo_pjan',
+    inmigracion: 'Eurostat · tps00176',
+    hogares: 'INE · 60133',
+    tamano_hogar: 'INE · 60132'
+};
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -57,9 +65,20 @@ function fmtTrillions(vM) {
 }
 
 function fmtPeriod(period) {
-    const [y, m] = period.split('-');
-    return `${t('months')[+m - 1]} ${y}`;
+    const parts = period.split('-');
+    if (parts.length === 2 && parts[1].startsWith('Q')) return `${parts[1]} ${parts[0]}`;
+    if (parts.length === 2) return `${t('months')[+parts[1] - 1]} ${parts[0]}`;
+    return period;
 }
+
+function fmtPeriodShort(period) {
+    const parts = period.split('-');
+    if (parts.length === 2 && parts[1].startsWith('Q')) return `${parts[0]} ${parts[1]}`;
+    if (parts.length === 2) return `${t('months')[+parts[1] - 1]} ${parts[0].slice(2)}`;
+    return period;
+}
+
+function yearOf(period) { return period.slice(0, 4); }
 
 function valueAtYear(series, year) {
     const limit = `${year}-12`;
@@ -72,7 +91,7 @@ function valueAtYear(series, year) {
 }
 
 function detectLang() {
-    const saved = localStorage.getItem('ecbmp-lang');
+    const saved = localStorage.getItem('esproblemas-lang');
     if (saved === 'es' || saved === 'en') return saved;
     return (navigator.language || 'en').toLowerCase().startsWith('es') ? 'es' : 'en';
 }
@@ -144,34 +163,35 @@ function tick() {
     updateOdometer($('#heroCounter'), str);
 }
 
-// ── Hero ──
-function renderHero() {
+// ── Hero / contador ──
+function renderSite() {
     const m3 = state.data.monetary.m3;
-    const base = m3.baseValueM;
-    const v99row = state.data.monetary.m3.history.find(r => r[0] === '1999-01');
-    const v99 = v99row ? v99row[1] : base / 3.96;
-
-    $('#headlineAmount').textContent = fmtTrillions(base);
     $('#rateValue').textContent = fmtMoney(Math.round(m3.perSecond), 0);
-
-    $('#heroSub').innerHTML = tmpl('hero.sub', {
-        ratio: numFmt(base / v99, 1),
-        from: fmtTrillions(v99),
-        to: fmtTrillions(base)
-    });
-
     $('#lastOfficialChip').textContent = `${t('chip.lastOfficial')} ${fmtPeriod(m3.basePeriod)}`;
-
     $('#statSec').textContent = fmtMoney(Math.round(m3.perSecond), 0);
     $('#statMin').textContent = fmtCompact(m3.perSecond * 60);
     $('#statHour').textContent = fmtCompact(m3.perSecond * 3600);
     $('#statDay').textContent = fmtCompact(m3.perSecond * 86400);
 }
 
-// ── Gráfico M3 ──
+// ── Sección dinero ──
 let chartBuilt = false;
 
-function buildChart() {
+function renderMoney() {
+    const m3 = state.data.monetary.m3;
+    const base = m3.baseValueM;
+    const v99row = m3.history.find(r => r[0] === '1999-01');
+    const v99 = v99row ? v99row[1] : base / 3.96;
+
+    $('#moneyAmount').textContent = fmtTrillions(base);
+    $('#moneySub').innerHTML = tmpl('money.sub', {
+        ratio: numFmt(base / v99, 1),
+        from: fmtTrillions(v99),
+        to: fmtTrillions(base)
+    });
+}
+
+function buildMoneyChart() {
     const chart = $('#m3Chart');
     const yearsRow = $('#m3Years');
     const hist = state.data.monetary.m3.history;
@@ -182,7 +202,7 @@ function buildChart() {
     CHART_YEARS.forEach(year => {
         const row = year === null ? hist[hist.length - 1] : valueAtYear(hist, year);
         if (!row) return;
-        const labelYear = year === null ? row[0].slice(0, 4) : year;
+        const labelYear = year === null ? yearOf(row[0]) : year;
         const covid = ['2020', '2021', '2022'].includes(String(year));
         const pct = (row[1] / maxVal * 85).toFixed(1);
         const col = document.createElement('div');
@@ -199,7 +219,7 @@ function buildChart() {
 
     const first = fmtTrillions(hist[0][1]);
     const last = fmtTrillions(hist[hist.length - 1][1]);
-    $('#chartSub').textContent = tmpl('chart.sub', { from: first, to: last });
+    $('#moneyChartSub').textContent = tmpl('money.chart.sub', { from: first, to: last });
 
     if (chartBuilt) {
         chart.querySelectorAll('.m3-col').forEach(c => {
@@ -211,9 +231,271 @@ function buildChart() {
     chartBuilt = true;
 }
 
-// ── Slider de precios ──
-const CAT_REF = {};
-const ITEM_REF = {};
+// ── Gráficos SVG genéricos ──
+function chartValue(v, unit) {
+    if (v === 0) return '0';
+    if (unit === 'index') return numFmt(v, 1);
+    if (unit === 'thousand') return numFmt(v, 0) + (state.lang === 'es' ? ' mil' : 'k');
+    if (unit === 'people') {
+        const a = Math.abs(v);
+        if (a >= 1e6) return numFmt(v / 1e6, 1) + ' M';
+        if (a >= 1e3) return numFmt(v / 1e3, 0) + ' k';
+        if (a >= 100) return numFmt(v, 0);
+        if (a >= 10) return numFmt(v, 1);
+        return numFmt(v, 2);
+    }
+    return numFmt(v, 1);
+}
+
+function niceTicks(lo, hi, count) {
+    const raw = (hi - lo) / count;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const norm = raw / mag;
+    const ladder = [1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10];
+    const step = (ladder.find(x => norm <= x) || 10) * mag;
+    const ticks = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + step * 0.001; v += step) {
+        ticks.push(Number(v.toFixed(6)));
+    }
+    if (ticks.length < 3) {
+        for (let v = Math.floor(lo / step) * step; v <= hi + step * 0.001 && ticks.length < 3; v += step) ticks.push(Number(v.toFixed(6)));
+    }
+    return { ticks, step };
+}
+
+function xTickIndices(pts, maxTicks) {
+    const n = pts.length;
+    const first = pts[0][0];
+    const isQuarter = first.includes('-Q');
+    const isMonth = /^\d{4}-\d{2}$/.test(first);
+    if (isQuarter || isMonth) {
+        const perYear = isQuarter ? 4 : 12;
+        const yearSpan = Math.max(1, Math.round(n / perYear));
+        const yearStep = Math.max(1, Math.ceil(yearSpan / maxTicks));
+        const idxs = [];
+        let year = null;
+        for (let i = 0; i < n; i++) {
+            const y = Number(pts[i][0].slice(0, 4));
+            if (y !== year) {
+                year = y;
+                if (idxs.length === 0 || y % yearStep === 0) idxs.push(i);
+            }
+        }
+        return idxs;
+    }
+    const step = Math.max(1, Math.ceil(n / maxTicks));
+    const idxs = [];
+    for (let i = 0; i < n; i += step) idxs.push(i);
+    if (idxs[idxs.length - 1] !== n - 1) {
+        if (n - 1 - idxs[idxs.length - 1] >= step / 2) idxs.push(n - 1);
+        else idxs[idxs.length - 1] = n - 1;
+    }
+    return idxs;
+}
+
+function tickLabel(period, step) {
+    const parts = period.split('-');
+    if (parts.length === 2 && parts[1].startsWith('Q')) {
+        return step >= 4 ? parts[0] : `${parts[0]}-${parts[1]}`;
+    }
+    if (parts.length === 2) {
+        return step >= 12 ? parts[0] : `${t('months')[+parts[1] - 1]} ${parts[0].slice(2)}`;
+    }
+    return period;
+}
+
+function renderChart(spec) {
+    const W = 680, H = 275, padL = 62, padR = 18, padT = 28, padB = 36;
+    const pts = spec.series;
+    const values = pts.map(p => p[1]);
+    const vmin = Math.min(...values), vmax = Math.max(...values);
+    const span = (vmax - vmin) || 1;
+    let lo = spec.type === 'bars' ? Math.min(0, vmin) : vmin - span * 0.08;
+    let hi = vmax + span * 0.16;
+    const { ticks } = niceTicks(lo, hi, spec.type === 'bars' ? 4 : 5);
+
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const x = (i) => padL + (pts.length === 1 ? plotW / 2 : plotW * i / (pts.length - 1));
+    const y = (v) => padT + plotH * (1 - (v - lo) / (hi - lo));
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+    let svg = '';
+    ticks.forEach(tv => {
+        const gy = y(tv);
+        svg += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - padR}" y2="${gy.toFixed(1)}" stroke="rgba(120,150,255,0.12)" stroke-width="1"/>`;
+        svg += `<text x="${padL - 9}" y="${(gy + 4).toFixed(1)}" text-anchor="end" font-size="12" fill="var(--text-dim)">${esc(chartValue(tv, spec.unit))}</text>`;
+    });
+
+    if (spec.band) {
+        const i0 = pts.findIndex(p => p[0] >= spec.band.from);
+        let i1 = -1;
+        pts.forEach((p, i) => { if (p[0] <= spec.band.to) i1 = i; });
+        if (i0 >= 0 && i1 > i0) {
+            const bx = x(i0), bw = Math.max(2, x(i1) - x(i0));
+            svg += `<rect x="${bx.toFixed(1)}" y="${padT}" width="${bw.toFixed(1)}" height="${plotH}" fill="rgba(255,90,95,0.10)"/>`;
+            if (bw > 64) {
+                svg += `<text x="${(bx + bw / 2).toFixed(1)}" y="${padT + 13}" text-anchor="middle" font-size="12" fill="rgba(255,90,95,0.85)">${esc(t('chart.crisis'))}</text>`;
+            }
+        }
+    }
+
+    if (spec.type === 'bars') {
+        const bw = Math.max(1.5, plotW / pts.length * 0.7);
+        pts.forEach((p, i) => {
+            const vy = y(p[1]);
+            svg += `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${vy.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.5, y(lo) - vy).toFixed(1)}" fill="url(#barGrad)"/>`;
+        });
+    } else {
+        const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ');
+        svg += `<path d="${path}" fill="none" stroke="#ffcc00" stroke-width="2.6" stroke-linejoin="round"/>`;
+        const area = `${path} L${x(pts.length - 1).toFixed(1)},${y(lo).toFixed(1)} L${x(0).toFixed(1)},${y(lo).toFixed(1)} Z`;
+        svg += `<path d="${area}" fill="url(#areaGrad)" stroke="none"/>`;
+    }
+
+    if (spec.peak) {
+        const idx = pts.findIndex(p => p[0] === spec.peak.period);
+        if (idx >= 0) {
+            const px = x(idx), py = y(spec.peak.value);
+            const label = esc(tmpl('chart.peak', { year: yearOf(spec.peak.period) }));
+            const lx = Math.min(Math.max(px, padL + 30), W - padR - 30);
+            svg += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="#ff5a5f"/>`;
+            svg += `<text x="${lx.toFixed(1)}" y="${(py - 10).toFixed(1)}" text-anchor="middle" font-size="12" fill="rgba(255,120,125,0.95)">${label}</text>`;
+        }
+    }
+
+    const maxTicks = 6;
+    const step = Math.max(1, Math.ceil(pts.length / maxTicks));
+    const idxs = xTickIndices(pts, maxTicks);
+    idxs.forEach((i, k) => {
+        const tx = x(i);
+        const anchor = k === 0 ? 'start' : (i === pts.length - 1 ? 'end' : 'middle');
+        svg += `<line x1="${tx.toFixed(1)}" y1="${padT + plotH}" x2="${tx.toFixed(1)}" y2="${padT + plotH + 5}" stroke="rgba(120,150,255,0.3)" stroke-width="1"/>`;
+        svg += `<text x="${tx.toFixed(1)}" y="${H - 11}" text-anchor="${anchor}" font-size="12" fill="var(--text-dim)">${esc(tickLabel(pts[i][0], step))}</text>`;
+    });
+
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('chart.' + spec.id + '.title'))}">
+        <defs>
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(255,204,0,0.28)"/><stop offset="100%" stop-color="rgba(255,204,0,0)"/>
+            </linearGradient>
+            <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(255,204,0,0.75)"/><stop offset="100%" stop-color="rgba(255,204,0,0.18)"/>
+            </linearGradient>
+        </defs>
+        ${svg}
+    </svg>`;
+}
+
+// ── Sección vivienda ──
+const METRIC_VALUE = {
+    hpi: (v) => numFmt(v, 1),
+    hpi_yoy: (v) => (v > 0 ? '+' : '') + numFmt(v, 1) + '%',
+    visados: (v) => numFmt(v, 0) + (state.lang === 'es' ? ' mil' : 'k'),
+    hogares: (v) => numFmt(v / 1e6, 2) + ' M',
+    tamano_hogar: (v) => numFmt(v, 2),
+    inmigracion: (v) => numFmt(v / 1e6, 2) + ' M',
+    poblacion: (v) => numFmt(v / 1e6, 1) + ' M'
+};
+
+function renderHousingMetrics(metrics) {
+    const wrap = $('#housingMetrics');
+    wrap.innerHTML = '';
+    metrics.forEach(m => {
+        if (m.value === null || m.value === undefined) return;
+        const label = tmpl('metric.' + m.id + '.label', { ref: m.period ? yearOf(m.period) : '' });
+        let extra = '';
+        if (m.extra !== null && m.extra !== undefined && m.extraRef) {
+            const ref = yearOf(m.extraRef);
+            if (m.id === 'hogares' || m.id === 'poblacion') {
+                extra = '+' + numFmt(Math.abs(m.extra), 2) + ' ' + tmpl('metric.' + m.id + '.extra', { ref });
+            } else {
+                extra = (m.extra > 0 ? '+' : '') + numFmt(m.extra, 1) + tmpl('metric.' + m.id + '.extra', { ref });
+            }
+        }
+        const card = document.createElement('div');
+        card.className = 'metric-card';
+        card.innerHTML = `
+            <div class="metric-label"></div>
+            <div class="metric-value"></div>
+            <div class="metric-extra"></div>
+            <div class="metric-foot"><span class="metric-source"></span></div>`;
+        card.querySelector('.metric-label').textContent = label;
+        card.querySelector('.metric-value').textContent = METRIC_VALUE[m.id] ? METRIC_VALUE[m.id](m.value) : String(m.value);
+        card.querySelector('.metric-extra').textContent = extra;
+        card.querySelector('.metric-source').textContent = m.source + (m.period ? ' · ' + fmtPeriodShort(m.period) : '');
+        wrap.appendChild(card);
+    });
+}
+
+function renderHousingCharts(charts) {
+    const wrap = $('#housingCharts');
+    wrap.innerHTML = '';
+    charts.forEach(spec => {
+        const card = document.createElement('div');
+        card.className = 'chart-card' + (spec.id === 'hpi' ? ' wide' : '');
+        card.innerHTML = `
+            <div class="chart-head">
+                <h4 class="chart-title"></h4>
+                <span class="chart-source"></span>
+            </div>
+            <div class="chart-body"></div>`;
+        card.querySelector('.chart-title').textContent = t('chart.' + spec.id + '.title');
+        card.querySelector('.chart-source').textContent = t('chart.source') + ': ' + (CHART_SOURCES[spec.id] || '');
+        card.querySelector('.chart-body').innerHTML = renderChart(spec);
+        wrap.appendChild(card);
+    });
+}
+
+function renderHousingLists() {
+    const myths = $('#housingMyths');
+    myths.innerHTML = '';
+    I18N[state.lang].housingMyths.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'myth-item';
+        div.innerHTML = '<div class="myth-q"></div><p class="myth-a"></p>';
+        div.querySelector('.myth-q').textContent = item.q;
+        div.querySelector('.myth-a').textContent = item.a;
+        myths.appendChild(div);
+    });
+
+    const causes = $('#housingCauses');
+    causes.innerHTML = '';
+    I18N[state.lang].housingCauses.forEach(text => {
+        const li = document.createElement('li');
+        li.textContent = text;
+        causes.appendChild(li);
+    });
+
+    const solutions = $('#housingSolutions');
+    solutions.innerHTML = '';
+    I18N[state.lang].housingSolutions.forEach(text => {
+        const li = document.createElement('li');
+        li.textContent = text;
+        solutions.appendChild(li);
+    });
+
+    const sources = $('#housingSources');
+    sources.innerHTML = '';
+    state.data.problems.housing.sources.concat(I18N[state.lang].housingRefs).forEach(src => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = src.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = src.label;
+        li.appendChild(a);
+        sources.appendChild(li);
+    });
+}
+
+function renderHousing() {
+    const housing = state.data.problems.housing;
+    renderHousingMetrics(housing.metrics);
+    renderHousingCharts(housing.charts);
+    renderHousingLists();
+}
+
+// ── Slider de precios (dinero) ──
 let cardRefs = [];
 
 function buildCards() {
@@ -263,10 +545,8 @@ function buildCards() {
 }
 
 function updatePrices(idx) {
-    const slider = $('#yearSlider');
     const years = state.data.meta.sliderYears;
-    const maxIdx = years.length;
-    const isNow = idx >= maxIdx;
+    const isNow = idx >= years.length;
     $('#sliderYear').textContent = isNow ? t('infl.nowBadge') : years[idx];
 
     cardRefs.forEach(ref => {
@@ -275,24 +555,25 @@ function updatePrices(idx) {
         const nowEl = ref.el.querySelector('.price-now-val');
         const barEl = ref.el.querySelector('.price-card-bar-fill');
 
-        let thenVal, nowVal, thenStr;
+        let nowVal, thenStr;
         if (ref.type === 'hicp') {
             const series = ref.cat.index;
             const nowIdx = series[series.length - 1][1];
             const baseRow = valueAtYear(series, years[idx]);
             nowVal = 100 * nowIdx / baseRow[1];
-            const baseYear = Number(baseRow[0].slice(0, 4));
+            const baseYear = Number(yearOf(baseRow[0]));
             const base100 = numFmt(100, 0);
             const yearTag = baseYear !== years[idx] ? ` · ${baseYear}` : '';
             thenStr = state.lang === 'es' ? `${base100} €${yearTag}` : `€${base100}${yearTag}`;
         } else {
             const prices = ref.item.prices;
-            thenVal = prices[idx];
+            const thenVal = prices[idx];
             nowVal = prices[prices.length - 1];
             thenStr = (ref.item.approx ? '≈ ' : '') + fmtMoney(thenVal, thenVal >= 1000 ? 0 : 2);
         }
 
-        const pct = (nowVal / (ref.type === 'hicp' ? 100 : thenVal) - 1) * 100;
+        const base = ref.type === 'hicp' ? 100 : ref.item.prices[idx];
+        const pct = (nowVal / base - 1) * 100;
         const nowStr = (ref.type === 'item' && ref.item.approx ? '≈ ' : '') +
             fmtMoney(nowVal, ref.type === 'hicp' ? 0 : (nowVal >= 1000 ? 0 : 2)) +
             (ref.type === 'item' && ref.item.unit && ref.item.unit !== '€' ? ' ' + ref.item.unit : '');
@@ -309,8 +590,8 @@ function updatePrices(idx) {
         } else {
             changeEl.textContent = '+' + numFmt(pct, 0) + '%';
             changeEl.style.color = 'var(--red)';
-            changeEl.style.background = 'rgba(255, 59, 59, 0.08)';
-            changeEl.style.borderColor = 'rgba(255, 59, 59, 0.1)';
+            changeEl.style.background = 'rgba(255, 90, 95, 0.1)';
+            changeEl.style.borderColor = 'rgba(255, 90, 95, 0.25)';
             barEl.style.width = Math.min(100, pct) + '%';
         }
     });
@@ -323,7 +604,9 @@ function buildFaq() {
     I18N[state.lang].faq.forEach(item => {
         const div = document.createElement('div');
         div.className = 'faq-item';
-        div.innerHTML = `<h3 class="faq-q"></h3><p class="faq-a"></p>`;
+        div.innerHTML = `<div class="faq-tag"></div><h3 class="faq-q"></h3><p class="faq-a"></p>`;
+        div.querySelector('.faq-tag').textContent = t('faq.tag.' + item.tag);
+        div.querySelector('.faq-tag').classList.add('tag-' + item.tag);
         div.querySelector('.faq-q').textContent = item.q;
         div.querySelector('.faq-a').textContent = item.a;
         wrap.appendChild(div);
@@ -362,16 +645,22 @@ function bindEvents() {
     slider.addEventListener('input', () => updatePrices(+slider.value));
 }
 
-function setLang(lang) {
-    if (state.lang === lang) return;
-    state.lang = lang;
-    localStorage.setItem('ecbmp-lang', lang);
-    applyI18n();
-    renderHero();
-    buildChart();
+function renderAll() {
+    renderSite();
+    renderMoney();
+    buildMoneyChart();
+    renderHousing();
     buildCards();
     buildFaq();
     updatePrices(+$('#yearSlider').value);
+}
+
+function setLang(lang) {
+    if (state.lang === lang) return;
+    state.lang = lang;
+    localStorage.setItem('esproblemas-lang', lang);
+    applyI18n();
+    renderAll();
     tick();
 }
 
@@ -395,7 +684,7 @@ async function init() {
     state.data = await loadData();
     if (!state.data) {
         applyI18n();
-        $('#heroSub').textContent = t('error.load');
+        $('#moneySub').textContent = t('error.load');
         return;
     }
 
@@ -405,11 +694,7 @@ async function init() {
     slider.value = 0;
 
     applyI18n();
-    renderHero();
-    buildChart();
-    buildCards();
-    buildFaq();
-    updatePrices(0);
+    renderAll();
     setupReveal();
 
     tick();

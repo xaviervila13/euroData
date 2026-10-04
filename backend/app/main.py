@@ -13,13 +13,13 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from . import db, ecb, etl, scheduler
+from . import db, etl, payload, scheduler
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
-log = logging.getLogger("europrinter.api")
+log = logging.getLogger("esproblemas.api")
 
 _state: dict = {"pool": None, "sched": None, "cache": None, "cache_ts": 0.0}
 _cache_lock = threading.Lock()
@@ -28,20 +28,20 @@ PAYLOAD_TTL = float(os.environ.get("PAYLOAD_TTL_SECONDS", "300"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info("arrancando Euro Printer API")
+    log.info("arrancando ESProblemas API")
     pool = db.init()
     _state["pool"] = pool
     _state["sched"] = scheduler.start(pool)
     scheduler.bootstrap_async(pool)
     yield
-    log.info("apagando Euro Printer API")
+    log.info("apagando ESProblemas API")
     sched = _state.get("sched")
     if sched:
         sched.shutdown(wait=False)
     pool.close()
 
 
-app = FastAPI(title="Euro Printer API", version="2.0.0", lifespan=lifespan)
+app = FastAPI(title="ESProblemas API", version="2.1.0", lifespan=lifespan)
 
 
 def _payload(force: bool = False) -> dict:
@@ -52,11 +52,11 @@ def _payload(force: bool = False) -> dict:
     store = db.load_store(_state["pool"])
     if not store.get("bsi:m3"):
         raise HTTPException(status_code=503, detail="data not ready (bootstrap in progress)")
-    payload = ecb.build_payload(store)
+    payload_data = payload.build_payload(store)
     with _cache_lock:
-        _state["cache"] = payload
+        _state["cache"] = payload_data
         _state["cache_ts"] = time.time()
-    return payload
+    return payload_data
 
 
 @app.get("/api/data")

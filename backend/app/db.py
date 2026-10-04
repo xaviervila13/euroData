@@ -9,7 +9,7 @@ import time
 import psycopg
 from psycopg_pool import ConnectionPool
 
-log = logging.getLogger("europrinter.db")
+log = logging.getLogger("esproblemas.db")
 
 DDL_STATEMENTS = [
     """
