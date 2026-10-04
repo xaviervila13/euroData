@@ -192,8 +192,6 @@ def _housing_section(store: dict) -> dict:
          "series": [[p, round(v)] for p, v in households]},
         {"id": "inmigracion", "type": "bars", "unit": "people",
          "series": [[p, round(v)] for p, v in immigration]},
-        {"id": "tamano_hogar", "type": "line", "unit": "people",
-         "series": [[p, round(v, 2)] for p, v in size]},
     ]
 
     return {

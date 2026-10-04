@@ -21,9 +21,8 @@ const CHART_SOURCES = {
     hpi: 'Eurostat · prc_hpi_q',
     permits: 'Eurostat · sts_cobp_a',
     population: 'Eurostat · demo_pjan',
-    inmigracion: 'Eurostat · tps00176',
-    hogares: 'INE · 60133',
-    tamano_hogar: 'INE · 60132'
+    inmigracion: 'Eurostat · migr_imm1ctz',
+    hogares: 'INE · 60133'
 };
 
 const $ = (sel) => document.querySelector(sel);
