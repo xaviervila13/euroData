@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESProblemas — Los grandes problemas económicos de España, con datos</title>
-    <meta name="description" content="Vivienda, dinero y Estado: los grandes problemas económicos de España con gráficos de fuentes oficiales (INE, Eurostat, BCE), su causa de raíz y el análisis liberal. / Spain's biggest economic problems in official data.">
+    <meta name="description" content="Vivienda, precios y Estado: los grandes problemas económicos de España con gráficos de fuentes oficiales (INE, Eurostat, BCE), su causa de raíz y el análisis liberal. / Spain's biggest economic problems in official data.">
     <meta property="og:title" content="ESProblemas — Spain's economic problems, in official data">
     <meta property="og:description" content="Housing prices 33% above the 2007 bubble peak. €17.6 trillion of eurozone money supply. Every problem with its official chart and root cause.">
     <meta property="og:type" content="website">
@@ -19,7 +19,7 @@
         "mainEntity": [
             {"@type": "Question", "name": "¿Por qué se han disparado los precios de la vivienda en España?", "acceptedAnswer": {"@type": "Answer", "text": "Porque la demanda crece y la oferta no responde. Los hogares han aumentado en 1,3 millones desde 2021 mientras los visados de obra nueva (200.000 en 2025) siguen muy por debajo del máximo de 2006 (735.000). Cuando la oferta está limitada por suelo, licencias y tasas, cualquier aumento de demanda se traslada al precio."}},
             {"@type": "Question", "name": "¿Qué pasó en 2008-2013, cuando los precios cayeron?", "acceptedAnswer": {"@type": "Answer", "text": "El índice de precios de la vivienda cayó más de un 35% entre sus máximos de 2007 y el suelo de 2013. Fue el ajuste tras una burbuja de crédito y sobreconstrucción. Hoy el índice está un 33% por encima de aquel pico, pero con una diferencia clave: entonces sobraba oferta; ahora falta."}},
-            {"@type": "Question", "name": "¿Qué es la impresión de dinero del BCE?", "acceptedAnswer": {"@type": "Answer", "text": "El BCE crea dinero digital cuando compra bonos o presta a la banca. Su balance pasó de ~2 a ~8,8 billones de euros entre 2015 y 2022. La masa monetaria M3 de la eurozona ronda los 17,6 billones de euros."}},
+            {"@type": "Question", "name": "¿Por qué sube todo de precio?", "acceptedAnswer": {"@type": "Answer", "text": "Porque cada año se crean euros nuevos (unos 15.600 por segundo) mientras la producción real no crece al mismo ritmo. Con más euros persiguiendo los mismos bienes, cada euro compra menos. Según el HICP oficial, los precios de la eurozona son hoy alrededor de un 88% más altos que en 1999."}},
             {"@type": "Question", "name": "¿De dónde salen los datos de ESProblemas?", "acceptedAnswer": {"@type": "Answer", "text": "De fuentes oficiales: Eurostat (índice de precios de la vivienda, visados, inmigración, población), INE (hogares y tamaño del hogar) y Banco Central Europeo (agregados monetarios). Todos los enlaces a las fuentes están citados en el sitio."}}
         ]
     }
@@ -54,7 +54,7 @@
     </div>
     <nav class="header-links">
         <a href="#vivienda" class="active" data-i18n="nav.housing"></a>
-        <a href="#dinero" data-i18n="nav.money"></a>
+        <a href="#inflacion" data-i18n="nav.inflation"></a>
         <a href="#faq" data-i18n="nav.faq"></a>
     </nav>
     <div class="lang-toggle">
@@ -110,20 +110,22 @@
         </div>
     </section>
 
-    <section class="problem-section alt" id="dinero">
+    <section class="problem-section alt" id="inflacion">
         <div class="problem-inner">
             <div class="problem-head">
-                <div class="problem-eyebrow" data-i18n="money.eyebrow"></div>
+                <div class="problem-eyebrow" data-i18n="infl.eyebrow"></div>
                 <h2 class="problem-title" data-reveal>
-                    <span data-i18n="money.pre"></span><br>
-                    <span class="highlight" id="moneyAmount"></span><br>
-                    <span data-i18n="money.post"></span>
+                    <span data-i18n="infl.headline.pre"></span><br>
+                    <span class="highlight" data-i18n="infl.headline.hl"></span>
                 </h2>
                 <p class="problem-lede" id="moneySub"></p>
             </div>
 
+            <div class="pain-grid" id="inflationCards"></div>
+
             <div class="live-block">
                 <div class="live-label" data-i18n="live.label"></div>
+                <div class="live-note"><span data-i18n="infl.m3note"></span> <strong id="moneyAmount"></strong></div>
                 <div class="counter-block">
                     <div class="counter-glow"></div>
                     <div class="hero-counter" id="heroCounter"></div>
@@ -146,10 +148,10 @@
             </div>
 
             <div class="m3-header">
-                <h3 class="m3-title" data-reveal data-i18n="money.chart.title"></h3>
+                <h3 class="m3-title" data-reveal data-i18n="infl.chart.title"></h3>
                 <button class="info-btn" aria-label="What is M3?">
                     i
-                    <div class="info-tooltip" data-i18n-html="money.chart.info"></div>
+                    <div class="info-tooltip" data-i18n-html="infl.chart.info"></div>
                 </button>
             </div>
             <p class="m3-sub" id="moneyChartSub"></p>

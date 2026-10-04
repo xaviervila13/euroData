@@ -5,7 +5,7 @@ Los grandes problemas económicos de España, con datos oficiales y análisis li
 **Ahora mismo:**
 
 - **Problema 01 · Vivienda**: índice de precios un 33% por encima del pico de 2007, visados de obra nueva un 73% por debajo del máximo de 2006, hogares +1,3 M desde 2021 — con las causas de raíz y las soluciones liberales.
-- **Problema 02 · Dinero**: M3 de la eurozona en ~17,6 billones de € con contador en vivo (~15.600 €/s), gráfico histórico desde 1980 y slider de inflación con el HICP oficial.
+- **Problema 02 · Inflación**: por qué tu euro compra cada vez menos. Tarjetas de poder de compra (100 € de 1999 compran hoy ~179 €; los ahorros sin interés pierden ~24% en una década), contador en vivo de creación de dinero (~15.600 €/s), gráfico de M3 desde 1980 y slider de precios con el HICP oficial.
 - **FAQ** por problema y fuentes enlazadas para verificar cada dato.
 
 El contador en vivo es client-side: el navegador interpola `base + (ahora − fecha_base) × €/s` a partir del último dato oficial (lag típico: 3-4 semanas).
@@ -104,11 +104,11 @@ node frontend/tests/dom_smoke.js   # smoke test del frontend (sin dependencias)
 |---|---|---|---|
 | Vivienda | Precio de la vivienda (trimestral, 2015=100) | Eurostat | `prc_hpi_q` (ES, TOTAL) |
 | Vivienda | Visados de obra nueva (anual, miles) | Eurostat | `sts_cobp_a` (BPRM_DW, CPA_F41001_X_410014) |
-| Vivienda | Inmigración anual | Eurostat | `tps00176` |
+| Vivienda | Inmigración anual (1998-) | Eurostat | `migr_imm1ctz` |
 | Vivienda | Población (1960-) | Eurostat | `demo_pjan` |
 | Vivienda | Hogares y tamaño medio del hogar (trimestral) | INE | tablas 60133 y 60132 |
-| Dinero | M3 / M2 / M1 de la eurozona (mensual, 1980-) | BCE | `BSI.M.U2.Y.V.M30/M20/M10...` |
-| Dinero | HICP índices y tasa (1996-) | BCE/Eurostat | `ICP...INX/ANR` + `HICP...4D0.INX/ANR` |
+| Inflación | M3 / M2 / M1 de la eurozona (mensual, 1980-) | BCE | `BSI.M.U2.Y.V.M30/M20/M10...` |
+| Inflación | HICP índices y tasa (1996-) | BCE/Eurostat | `ICP...INX/ANR` + `HICP...4D0.INX/ANR` |
 
 El cambio metodológico del HICP (feb-2026) partió las series: el ETL encadena ambas bases en dic-2025 usando el solapamiento 2024-2025.
 

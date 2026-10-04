@@ -4,12 +4,12 @@ const I18N = {
     es: {
         langTag: 'es-ES',
         'nav.housing': 'Vivienda',
-        'nav.money': 'Dinero',
+        'nav.inflation': 'Inflación',
         'nav.faq': 'Preguntas',
         'site.eyebrow': 'Datos oficiales · Análisis liberal',
         'site.title': 'Los grandes problemas económicos de España, con datos.',
         'site.lede': 'Vivienda, dinero y Estado. Cada problema con sus gráficos oficiales de INE, Eurostat y BCE, la causa de raíz y las soluciones que funcionan.',
-        'live.label': 'En directo · Masa monetaria de la eurozona (M3)',
+        'live.label': 'En directo · los euros nuevos se crean a este ritmo',
         'rate.pre': 'Creciendo a',
         'rate.post': '/ segundo (estimado)',
         'stats.sec': 'Por segundo',
@@ -53,13 +53,20 @@ const I18N = {
         'chart.source': 'Fuente',
         'chart.min': 'mín.',
 
-        'money.eyebrow': 'Problema 02 · Dinero',
-        'money.pre': 'La masa monetaria de la eurozona supera los',
-        'money.post': 'y sigue creciendo.',
-        'money.sub': 'Desde la creación del euro en 1999, <strong>M3</strong> —el agregado monetario más amplio— se ha multiplicado por <strong>{ratio}</strong>: de {from} a {to}. Este contador corre en vivo, interpolando los últimos datos oficiales del BCE.',
-        'money.chart.title': 'Crecimiento de M3',
-        'money.chart.info': '<strong>¿Qué es M3?</strong><br>M3 es la medida más amplia de dinero de la eurozona: efectivo, depósitos a la vista y de ahorro, e instrumentos líquidos del mercado monetario. Cuando el BCE inyecta liquidez (QE, TLTROs) y la banca concede crédito, M3 crece. Una expansión rápida de M3 suele presionar los precios al alza.',
-        'money.chart.sub': 'De {from} en 1980 a {to} en 2026. El saldo del QE de 2020-2021 rompió el gráfico.',
+        'infl.eyebrow': 'Problema 02 · Inflación',
+        'infl.headline.pre': 'Cada año,',
+        'infl.headline.hl': 'tu euro compra menos.',
+        'infl.lede': 'Todo sube de precio por una razón que casi nadie explica: cada año se crean euros nuevos —hoy, unos <strong>{rate}</strong> por segundo— mientras la producción real avanza mucho más despacio. Con más euros persiguiendo los mismos bienes, cada euro compra menos. Para tus ahorros es un impuesto silencioso: nadie te lo cobra, pero lo pagas igual.',
+        'infl.m3note': 'M3 hoy:',
+        'infl.chart.title': 'El dinero creado desde 1980',
+        'infl.chart.info': '<strong>¿Qué es M3 y por qué importa?</strong><br>M3 es la medida más amplia de dinero de la eurozona: efectivo, depósitos a la vista y de ahorro, y fondos del mercado monetario. Si crece más rápido que la economía real, sobran euros para los mismos bienes y los precios suben. Es la materia prima de la inflación.',
+        'infl.chart.sub': 'M3 pasó de {from} en 1980 a {to} en 2026. El QE de 2020-2021 disparó la máquina.',
+        'infl.card.pp.label': 'Lo que compran hoy 100 € de 1999',
+        'infl.card.pp.note': 'Los precios de la eurozona acumulan un +{cum}% desde finales de 1999.',
+        'infl.card.pp.source': 'HICP · BCE/Eurostat',
+        'infl.card.savings.label': 'Tus ahorros, sin interés, en 10 años',
+        'infl.card.savings.note': 'Con la inflación media de la última década ({avg}%), 10.000 € guardados compran un {loss}% menos.',
+        'infl.card.savings.source': 'HICP · media 10 años',
         'quote.text': '«La inflación es impuestos sin legislación.»',
         'quote.cite': 'Milton Friedman',
         'infl.title.pre': 'Lo mismo.',
@@ -72,7 +79,7 @@ const I18N = {
 
         'faq.title': 'Preguntas frecuentes',
         'faq.tag.housing': 'Vivienda',
-        'faq.tag.money': 'Dinero',
+        'faq.tag.inflation': 'Inflación',
         'footer.made': 'Datos oficiales de',
         'footer.license': ' · INE, Eurostat y BCE (CC BY 4.0) · Sitio no afiliado a ninguna administración.',
         'footer.estimate': 'El contador de dinero es una estimación lineal a partir de datos mensuales. Nada de esto es asesoramiento financiero.',
@@ -126,33 +133,38 @@ const I18N = {
                 a: 'La vivienda pública y las reservas obligatorias de VPO reducen el suelo y los recursos destinados a vivienda libre, y no han evitado que el índice marque máximos históricos. La alternativa más rápida y más barata es menos regulación, no más gasto: liberar suelo, eliminar tasas y licencias previas y bajar los impuestos que gravan cada compra.'
             },
             {
+                q: 'Si se crea más dinero, ¿por qué me afecta a mí?',
+                tag: 'inflation',
+                a: 'Porque el valor de tu dinero depende de cuántos euros compitan por las mismas cosas. Si tu nómina, tu pensión o tus ahorros crecen menos que los precios, pierdes poder de compra aunque el saldo de tu cuenta no baje: es un impuesto que no se vota y que pagan sobre todo los ahorradores y quienes cobran rentas fijas. Los deudores, en cambio, ganan: devuelven su hipoteca con euros que valen menos.'
+            },
+            {
                 q: '¿Qué es la "impresión de dinero" del BCE?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'El BCE no imprime billetes físicos (eso lo hacen los bancos centrales nacionales del Eurosistema), sino dinero digital: cuando compra bonos (quantitative easing) o presta a la banca crea reservas nuevas. Su balance pasó de ~2 a ~8,8 billones de euros entre 2015 y 2022. La mayor parte del dinero nuevo la crea la banca comercial al conceder crédito; el BCE fija las condiciones.'
             },
             {
                 q: '¿Qué es M3?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'Es el agregado monetario más amplio de la eurozona: M1 (efectivo y depósitos a la vista) + M2 (ahorro a corto plazo) + instrumentos del mercado monetario. El BCE lo publica cada mes. Hoy ronda los 17,6 billones de euros, casi cuatro veces el que había cuando nació el euro en 1999.'
             },
             {
                 q: '¿De dónde sale la cifra de euros por segundo?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'De los últimos datos mensuales de M3 publicados por el BCE: se toma la variación media de los tres últimos meses y se divide entre los segundos que tiene un mes medio. Es una aproximación lineal; el contador puede ir marcha atrás en meses de contracción, como ocurrió en 2023.'
             },
             {
                 q: '¿Qué relación tiene el dinero con la inflación?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'Cuando entra más dinero pero los bienes y servicios no aumentan al mismo ritmo, cada euro compra menos. La correlación entre expansión monetaria y precios a largo plazo es de las más robustas de la macroeconomía, con un desfase típico de 12-18 meses. Según el HICP, los precios de la eurozona son hoy ~85% más altos que a finales de 1996.'
             },
             {
                 q: '¿Puede el BCE "desimprimir"?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'En teoría sí (quantitative tightening): el balance del Eurosistema se ha reducido varios billones desde 2022. En la práctica, M3 apenas se contrae de forma sostenida: hacerlo tiende a provocar recesiones. La impresión funciona como un trinquete: crece rápido en las crisis y casi nunca vuelve a los niveles previos.'
             },
             {
                 q: '¿Qué es el efecto Cantillon?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'El dinero nuevo no llega a todos por igual: entra primero por el sistema financiero y los estados, que compran activos antes de que suban los precios. Quienes están cerca del grifo se benefician; ahorradores y asalariados ven erosionado su poder de compra después. Por eso los activos se disparan mientras los salarios reales avanzan más despacio.'
             }
         ]
@@ -161,12 +173,12 @@ const I18N = {
     en: {
         langTag: 'en-US',
         'nav.housing': 'Housing',
-        'nav.money': 'Money',
+        'nav.inflation': 'Inflation',
         'nav.faq': 'FAQ',
         'site.eyebrow': 'Official data · Liberal analysis',
         'site.title': "Spain's biggest economic problems, in data.",
         'site.lede': 'Housing, money and the state. Every problem with its official charts from INE, Eurostat and the ECB, the root cause and the policies that work.',
-        'live.label': 'Live · Eurozone money supply (M3)',
+        'live.label': 'Live · this is how fast new euros are created',
         'rate.pre': 'Growing at',
         'rate.post': '/ second (estimated)',
         'stats.sec': 'Per second',
@@ -210,13 +222,20 @@ const I18N = {
         'chart.source': 'Source',
         'chart.min': 'min.',
 
-        'money.eyebrow': 'Problem 02 · Money',
-        'money.pre': 'The eurozone money supply is past',
-        'money.post': 'and still growing.',
-        'money.sub': 'Since the euro was created in 1999, <strong>M3</strong> — the broadest money aggregate — has grown <strong>{ratio}×</strong>: from {from} to {to}. This counter runs live, interpolating the latest official ECB data.',
-        'money.chart.title': 'M3 Money Supply Growth',
-        'money.chart.info': '<strong>What is M3?</strong><br>M3 is the broadest measure of money in the eurozone: cash, sight and savings deposits, and liquid money-market instruments. When the ECB injects liquidity (QE, TLTROs) and banks extend credit, M3 grows. Rapid M3 expansion usually pushes prices up.',
-        'money.chart.sub': 'From {from} in 1980 to {to} in 2026. The 2020-2021 QE balance broke the chart.',
+        'infl.eyebrow': 'Problem 02 · Inflation',
+        'infl.headline.pre': 'Every year,',
+        'infl.headline.hl': 'your euro buys less.',
+        'infl.lede': 'Everything gets pricier for a reason hardly anyone explains: every year new euros are created — today, about <strong>{rate}</strong> per second — while real output grows far more slowly. With more euros chasing the same goods, each euro buys less. For your savings it is a silent tax: nobody charges it, but you pay it anyway.',
+        'infl.m3note': 'M3 today:',
+        'infl.chart.title': 'Money created since 1980',
+        'infl.chart.info': '<strong>What is M3 and why does it matter?</strong><br>M3 is the broadest measure of money in the eurozone: cash, sight and savings deposits, and liquid money-market instruments. When it grows faster than the real economy, there are more euros for the same goods and prices rise. It is the raw material of inflation.',
+        'infl.chart.sub': 'M3 went from {from} in 1980 to {to} in 2026. The 2020-2021 QE fired up the machine.',
+        'infl.card.pp.label': 'What 100 € of 1999 buys today',
+        'infl.card.pp.note': 'Eurozone prices have piled up +{cum}% since late 1999.',
+        'infl.card.pp.source': 'HICP · ECB/Eurostat',
+        'infl.card.savings.label': 'Your savings, with no interest, in 10 years',
+        'infl.card.savings.note': 'At the average inflation of the last decade ({avg}%), 10,000 € kept aside buy {loss}% less.',
+        'infl.card.savings.source': 'HICP · 10-year average',
         'quote.text': '"Inflation is taxation without legislation."',
         'quote.cite': 'Milton Friedman',
         'infl.title.pre': 'Same stuff.',
@@ -229,7 +248,7 @@ const I18N = {
 
         'faq.title': 'Frequently Asked Questions',
         'faq.tag.housing': 'Housing',
-        'faq.tag.money': 'Money',
+        'faq.tag.inflation': 'Inflation',
         'footer.made': 'Official data from',
         'footer.license': ' · INE, Eurostat and ECB (CC BY 4.0) · Not affiliated with any government.',
         'footer.estimate': 'The money counter is a linear estimate from monthly data. None of this is financial advice.',
@@ -283,33 +302,38 @@ const I18N = {
                 a: 'Public housing and mandatory social-housing quotas divert land and resources away from free-market housing, and they have not prevented the index from hitting all-time highs. The faster and cheaper alternative is less regulation, not more spending: free up land, remove fees and prior licences, and cut the taxes on every purchase.'
             },
             {
+                q: 'If more money is created, why does it affect me?',
+                tag: 'inflation',
+                a: 'Because the value of your money depends on how many euros chase the same things. If your wage, pension or savings grow less than prices, you lose purchasing power even if your account balance does not fall: it is a tax nobody votes for, paid above all by savers and fixed-income earners. Debtors win: they repay their mortgages with euros worth less.'
+            },
+            {
                 q: 'What is ECB money printing?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'The ECB does not print physical banknotes (the Eurosystem national central banks do that) — it creates digital money: when it buys bonds (quantitative easing) or lends to banks it creates new reserves. Its balance sheet grew from ~€2 trillion to ~€8.8 trillion between 2015 and 2022. Most new money is created by commercial banks when they extend credit.'
             },
             {
                 q: 'What is M3?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'M3 is the broadest monetary aggregate of the eurozone: M1 (cash and sight deposits) + M2 (short-term savings deposits) + money-market instruments. The ECB publishes it monthly. It currently stands at about €17.6 trillion, almost four times what existed when the euro was created in 1999.'
             },
             {
                 q: 'Where does the euros-per-second figure come from?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'From the latest monthly M3 observations published by the ECB: the average change of the last three months is divided by the seconds in an average month. It is a linear approximation; the counter can run backwards in contracting months, as it did in 2023.'
             },
             {
                 q: 'What does money have to do with inflation?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'When more money enters the economy but goods and services do not grow at the same pace, each euro buys less. The long-run correlation between monetary expansion and prices is one of the most robust in macroeconomics, with a typical 12-18 month lag. Per the official HICP, eurozone prices are now ~85% higher than at the end of 1996.'
             },
             {
                 q: 'Can the ECB reverse money printing?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'In theory, yes (quantitative tightening): the Eurosystem balance sheet has shrunk by several trillion euros since 2022. In practice, M3 rarely contracts in a sustained way: doing so tends to cause recessions. Money printing works like a ratchet: it grows fast in crises and almost never returns to pre-crisis levels.'
             },
             {
                 q: 'What is the Cantillon Effect?',
-                tag: 'money',
+                tag: 'inflation',
                 a: 'New money does not reach everyone equally: it enters through the financial system and governments first, which can buy assets before prices rise. Those closest to the tap benefit; savers and wage earners see their purchasing power eroded afterwards.'
             }
         ]

@@ -93,7 +93,7 @@ const document = {
 ['#heroCounter', '#rateValue', '#lastOfficialChip', '#statSec', '#statMin', '#statHour', '#statDay',
     '#moneyAmount', '#moneySub', '#moneyChartSub', '#m3Chart', '#m3Years',
     '#housingMetrics', '#housingCharts', '#housingMyths', '#housingCauses', '#housingSolutions',
-    '#housingSources', '#priceGrid', '#faqList', '#yearSlider', '#sliderYear'
+    '#housingSources', '#inflationCards', '#priceGrid', '#faqList', '#yearSlider', '#sliderYear'
 ].forEach(sel => {
     const node = el('div');
     if (sel === '#yearSlider') { node.max = '6'; node.value = '0'; node.min = '0'; }
@@ -104,16 +104,17 @@ const langBtns = [el('button'), el('button')];
 langBtns[0].dataset.lang = 'es'; langBtns[1].dataset.lang = 'en';
 document.registerAll('.lang-btn', langBtns);
 
-const i18nKeys = ['nav.housing', 'nav.money', 'nav.faq', 'site.eyebrow', 'site.title', 'site.lede',
+const i18nKeys = ['nav.housing', 'nav.inflation', 'nav.faq', 'site.eyebrow', 'site.title', 'site.lede',
     'live.label', 'rate.pre', 'rate.post', 'stats.sec', 'stats.min', 'stats.hour', 'stats.day',
     'housing.eyebrow', 'housing.title', 'housing.lede', 'housing.chartsTitle', 'housing.mythsTitle',
     'housing.causesTitle', 'housing.solutionsTitle', 'housing.sourcesTitle', 'housing.disclaimer',
-    'money.eyebrow', 'money.pre', 'money.post', 'money.chart.title', 'quote.text', 'quote.cite',
+    'infl.eyebrow', 'infl.headline.pre', 'infl.headline.hl', 'infl.chart.title', 'infl.m3note',
+    'infl.card.pp.label', 'infl.card.savings.label', 'quote.text', 'quote.cite',
     'infl.title.pre', 'infl.title.red', 'infl.sub', 'infl.sliderLabel', 'infl.hicpNote', 'infl.approxNote',
     'faq.title', 'footer.made', 'footer.license', 'footer.estimate'];
 const i18nEls = i18nKeys.map(k => { const n = el('span'); n.dataset.i18n = k; return n; });
 document.registerAll('[data-i18n]', i18nEls);
-const htmlEl = el('div'); htmlEl.dataset.i18nHtml = 'money.chart.info';
+const htmlEl = el('div'); htmlEl.dataset.i18nHtml = 'infl.chart.info';
 document.registerAll('[data-i18n-html]', [htmlEl]);
 document.registerAll('[data-reveal], #m3Chart', [document._els['#m3Chart']]);
 
@@ -179,9 +180,16 @@ const i18nSrc = fs.readFileSync(path.join(FRONTEND, 'assets/i18n.js'), 'utf8');
     assert(/\+[\d.,]+%/.test(hpiMetric.querySelector('.metric-extra').textContent),
         'extra de la métrica HPI: ' + hpiMetric.querySelector('.metric-extra').textContent);
 
+    assert(els['#inflationCards'].children.length === 2, 'tarjetas de inflación: ' + els['#inflationCards'].children.length);
+    const ppCard = els['#inflationCards'].children[0];
+    assert(/€/.test(ppCard.querySelector('.metric-value').textContent), 'tarjeta poder de compra: ' + ppCard.querySelector('.metric-value').textContent);
+    assert(/\+\d+%/.test(ppCard.querySelector('.metric-extra').textContent), 'nota acumulada: ' + ppCard.querySelector('.metric-extra').textContent);
+    const savCard = els['#inflationCards'].children[1];
+    assert(/[−-]\d/.test(savCard.querySelector('.metric-value').textContent), 'tarjeta ahorros: ' + savCard.querySelector('.metric-value').textContent);
+    assert(els['#moneySub'].innerHTML.includes('15.610 €'), 'lede de inflación con el ritmo');
     assert(els['#m3Chart'].children.length === 12, 'gráfico M3: 12 columnas');
     assert(els['#priceGrid'].children.length === DATA.hicp.categories.length + DATA.items.length, 'tarjetas de precios');
-    assert(els['#faqList'].children.length === 10, 'FAQ: 10 preguntas');
+    assert(els['#faqList'].children.length === 11, 'FAQ: 11 preguntas');
     assert(els['#faqList'].children[0].querySelector('.faq-tag').textContent === 'Vivienda', 'tag FAQ vivienda');
     assert(els['#faqList'].children[0].querySelector('.faq-q').textContent.startsWith('¿Por qué'), 'primera FAQ en ES');
 
@@ -196,6 +204,9 @@ const i18nSrc = fs.readFileSync(path.join(FRONTEND, 'assets/i18n.js'), 'utf8');
     assert(els['#housingMyths'].children[0].querySelector('.myth-q').textContent.includes('speculation'), 'mito en EN');
     assert(els['#housingMetrics'].children.length === housing.metrics.filter(m => m.value != null).length,
         'métricas tras cambio de idioma');
+    assert(els['#inflationCards'].children.length === 2, 'tarjetas de inflación en EN');
+    assert(/\+\d+%/.test(els['#inflationCards'].children[0].querySelector('.metric-extra').textContent),
+        'nota de poder de compra en EN');
 
     console.log(process.exitCode ? 'TESTS FAILED' : 'ALL TESTS PASSED');
 })();

@@ -173,21 +173,56 @@ function renderSite() {
     $('#statDay').textContent = fmtCompact(m3.perSecond * 86400);
 }
 
-// ── Sección dinero ──
+// ── Sección inflación ──
 let chartBuilt = false;
 
-function renderMoney() {
-    const m3 = state.data.monetary.m3;
-    const base = m3.baseValueM;
-    const v99row = m3.history.find(r => r[0] === '1999-01');
-    const v99 = v99row ? v99row[1] : base / 3.96;
+function renderInflationCards() {
+    const wrap = $('#inflationCards');
+    wrap.innerHTML = '';
+    const idx = state.data.hicp.categories[0].index;
+    const baseRow = valueAtYear(idx, 1999);
+    const lastVal = idx[idx.length - 1][1];
+    const cum = (lastVal / baseRow[1] - 1) * 100;
+    const today = 100 * lastVal / baseRow[1];
 
-    $('#moneyAmount').textContent = fmtTrillions(base);
-    $('#moneySub').innerHTML = tmpl('money.sub', {
-        ratio: numFmt(base / v99, 1),
-        from: fmtTrillions(v99),
-        to: fmtTrillions(base)
+    const anr = state.data.hicp.categories[0].anr;
+    const lastYear = Number(yearOf(anr[anr.length - 1][0]));
+    const recent = anr.filter(r => Number(yearOf(r[0])) > lastYear - 10);
+    const avg = recent.reduce((acc, r) => acc + r[1], 0) / recent.length;
+    const loss = (1 - 1 / Math.pow(1 + avg / 100, 10)) * 100;
+
+    const cards = [
+        {
+            value: fmtMoney(today, 0),
+            label: t('infl.card.pp.label'),
+            note: tmpl('infl.card.pp.note', { cum: numFmt(cum, 0) }),
+            source: t('infl.card.pp.source')
+        },
+        {
+            value: '−' + numFmt(loss, 1) + '%',
+            label: t('infl.card.savings.label'),
+            note: tmpl('infl.card.savings.note', { avg: numFmt(avg, 1), loss: numFmt(loss, 1) }),
+            source: t('infl.card.savings.source')
+        }
+    ];
+
+    cards.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'metric-card pain-card';
+        card.innerHTML = `<div class="metric-label"></div><div class="metric-value"></div><div class="metric-extra"></div><div class="metric-foot"><span class="metric-source"></span></div>`;
+        card.querySelector('.metric-label').textContent = c.label;
+        card.querySelector('.metric-value').textContent = c.value;
+        card.querySelector('.metric-extra').textContent = c.note;
+        card.querySelector('.metric-source').textContent = c.source;
+        wrap.appendChild(card);
     });
+}
+
+function renderInflation() {
+    const m3 = state.data.monetary.m3;
+    $('#moneyAmount').textContent = fmtTrillions(m3.baseValueM);
+    $('#moneySub').innerHTML = tmpl('infl.lede', { rate: fmtMoney(Math.round(m3.perSecond), 0) });
+    renderInflationCards();
 }
 
 function buildMoneyChart() {
@@ -218,7 +253,7 @@ function buildMoneyChart() {
 
     const first = fmtTrillions(hist[0][1]);
     const last = fmtTrillions(hist[hist.length - 1][1]);
-    $('#moneyChartSub').textContent = tmpl('money.chart.sub', { from: first, to: last });
+    $('#moneyChartSub').textContent = tmpl('infl.chart.sub', { from: first, to: last });
 
     if (chartBuilt) {
         chart.querySelectorAll('.m3-col').forEach(c => {
@@ -646,7 +681,7 @@ function bindEvents() {
 
 function renderAll() {
     renderSite();
-    renderMoney();
+    renderInflation();
     buildMoneyChart();
     renderHousing();
     buildCards();
