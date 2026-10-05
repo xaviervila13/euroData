@@ -220,9 +220,9 @@ header::after {
 
 .m3-title {
     font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; color: white;
-    opacity: 0; transform: translateY(20px); transition: all 0.6s ease-out;
+    transform: translateY(20px); transition: transform 0.6s ease-out;
 }
-.m3-title.visible { opacity: 1; transform: translateY(0); }
+.m3-title.visible { transform: translateY(0); }
 
 .info-btn {
     width: 26px; height: 26px; border-radius: 50%;
@@ -259,9 +259,9 @@ header::after {
 .m3-col {
     flex: 1; display: flex; flex-direction: column; align-items: center;
     height: 100%; justify-content: flex-end; position: relative;
-    opacity: 0; transform: translateY(20px); transition: all 0.6s ease-out;
+    transform: translateY(20px); transition: transform 0.6s ease-out;
 }
-.m3-col.visible { opacity: 1; transform: translateY(0); }
+.m3-col.visible { transform: translateY(0); }
 .m3-col-label {
     font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600;
     color: rgba(255, 204, 0, 0.9); margin-bottom: 6px; white-space: nowrap;
@@ -292,9 +292,9 @@ header::after {
 .inflation-title {
     font-family: var(--font-display); font-size: clamp(1.6rem, 4vw, 2.4rem);
     font-weight: 800; color: white; letter-spacing: -0.02em; margin-bottom: 10px;
-    opacity: 0; transform: translateY(20px); transition: all 0.6s ease-out;
+    transform: translateY(20px); transition: transform 0.6s ease-out;
 }
-.inflation-title.visible { opacity: 1; transform: translateY(0); }
+.inflation-title.visible { transform: translateY(0); }
 .inflation-title .red { color: var(--red); }
 
 .inflation-sub { font-size: 0.85rem; color: var(--text-dim); }
@@ -531,9 +531,9 @@ footer::before {
     font-family: var(--font-display); font-size: clamp(1.6rem, 3.6vw, 2.4rem);
     font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; color: white;
     margin-bottom: 16px;
-    opacity: 0; transform: translateY(18px); transition: all 0.6s ease-out;
+    transform: translateY(18px); transition: transform 0.6s ease-out;
 }
-.problem-title.visible { opacity: 1; transform: translateY(0); }
+.problem-title.visible { transform: translateY(0); }
 .problem-title .highlight {
     background: linear-gradient(90deg, var(--gold) 0%, #ff9e00 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
