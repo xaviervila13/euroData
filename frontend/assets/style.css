@@ -14,7 +14,7 @@
     --red-border: rgba(255, 90, 95, 0.25);
     --text: #e8ecf5;
     --text-muted: #9aa7c7;
-    --text-dim: #64719a;
+    --text-dim: #7d8ab0;
     --border: rgba(120, 150, 255, 0.1);
     --font-display: 'Sora', sans-serif;
     --font-body: 'IBM Plex Sans', sans-serif;
@@ -79,7 +79,7 @@ header::after {
 .lang-btn {
     font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em;
     color: var(--text-dim); background: transparent; border: none; border-radius: 6px;
-    padding: 4px 9px; cursor: pointer; transition: all 0.2s;
+    padding: 7px 12px; cursor: pointer; transition: all 0.2s;
 }
 .lang-btn:hover { color: white; }
 .lang-btn.active { color: var(--bg); background: var(--gold); }
@@ -139,6 +139,7 @@ header::after {
 }
 
 .hero-counter {
+    min-height: 1.15em;
     position: relative;
     font-family: var(--font-mono); font-size: clamp(1.4rem, 4.6vw, 2.9rem);
     font-weight: 700; line-height: 1; color: var(--gold);
@@ -208,7 +209,7 @@ header::after {
     content: ''; display: inline-block; width: 4px; height: 4px; border-radius: 50%;
     background: var(--gold); margin-right: 6px; vertical-align: 2px; opacity: 0.7;
 }
-.stats-strip-value { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; color: white; }
+.stats-strip-value { min-height: 1.3em; font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; color: white; }
 
 .m3-section { max-width: 1000px; margin: 0 auto; padding: 80px 24px; }
 
@@ -224,7 +225,7 @@ header::after {
 .m3-title.visible { opacity: 1; transform: translateY(0); }
 
 .info-btn {
-    width: 20px; height: 20px; border-radius: 50%;
+    width: 26px; height: 26px; border-radius: 50%;
     border: 1px solid var(--text-dim); background: transparent;
     font-family: var(--font-body); font-size: 0.65rem; font-weight: 600;
     color: var(--text-dim); cursor: pointer; position: relative;
@@ -443,6 +444,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .faq-section {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 900px;
     max-width: 720px; margin: 0 auto; padding: 0 24px 80px;
 }
 .faq-title {
@@ -507,7 +510,11 @@ footer::before {
 }
 .stats-strip.in-section .stats-strip-item { max-width: none; }
 
-.problem-section { padding: 90px 24px; }
+.problem-section {
+    padding: 90px 24px;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 1400px;
+}
 .problem-section.alt {
     background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0, 51, 153, 0.22) 0%, transparent 70%),
                 rgba(10, 20, 40, 0.35);
@@ -566,11 +573,12 @@ footer::before {
 }
 .pain-card .metric-value { font-size: 2.5rem; color: var(--gold); }
 .pain-card .metric-extra { color: var(--text-dim); }
-.live-note { font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-dim); margin: 3px 0 0; }
+.live-note { min-height: 1.2em; font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-dim); margin: 3px 0 0; }
 .live-note strong { color: var(--text-muted); }
 
 .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .metric-card {
+    min-height: 118px;
     background: rgba(46, 99, 231, 0.06);
     border: 1px solid rgba(46, 99, 231, 0.16);
     border-radius: 16px; padding: 16px 16px 12px;
@@ -594,7 +602,9 @@ footer::before {
 .chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .chart-title { font-family: var(--font-display); font-size: 1rem; font-weight: 600; color: var(--text); }
 .chart-source { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-dim); white-space: nowrap; }
+.chart-body { aspect-ratio: 680 / 275; }
 .chart-body svg { width: 100%; height: auto; display: block; }
+.chart-legend { min-height: 1.2em; }
 .chart-note { margin-top: 10px; font-size: 0.74rem; line-height: 1.55; color: var(--text-dim); border-left: 2px solid var(--gold-border); padding-left: 10px; }
 
 .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -625,7 +635,7 @@ footer::before {
 .sources-block { margin-top: 46px; }
 .sources-block .block-title { margin-top: 0; }
 .sources-list { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 18px; }
-.sources-list a { font-size: 0.86rem; color: var(--text-dim); text-decoration: none; border-bottom: 1px solid rgba(120, 150, 255, 0.2); transition: color 0.2s; }
+.sources-list a { padding: 4px 0; display: inline-block; font-size: 0.86rem; color: var(--text-dim); text-decoration: none; border-bottom: 1px solid rgba(120, 150, 255, 0.2); transition: color 0.2s; }
 .sources-list a:hover { color: var(--gold); }
 .disclaimer { margin-top: 18px; font-size: 0.76rem; line-height: 1.6; color: var(--text-dim); max-width: 720px; }
 

@@ -112,6 +112,8 @@ function applyI18n() {
     document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
     document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
     document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === state.lang));
+    const infoBtn = $('#m3InfoBtn');
+    if (infoBtn) infoBtn.setAttribute('aria-label', t('infl.infoLabel'));
 }
 
 // ── Odómetro ──
@@ -126,37 +128,45 @@ function createSlot() {
 }
 
 function updateOdometer(container, str) {
-    const existing = container.children;
-    const sig = (el) => el.dataset.t || '';
-    const existingSig = Array.from(existing).map(sig).join('');
     const targetSig = Array.from(str).map(ch => (ch >= '0' && ch <= '9') ? 'D' : ch).join('');
+    const cache = container._od;
 
-    if (existingSig !== targetSig) {
+    if (!cache || cache.sig !== targetSig) {
+        // cambia la estructura (longitud o separadores): se reconstruye y se cachean los strips
         container.innerHTML = '';
+        const strips = [];
+        const chars = [];
         for (const ch of str) {
+            chars.push(ch);
             if (ch >= '0' && ch <= '9') {
-                const slot = createSlot(); slot.dataset.t = 'D';
+                const slot = createSlot();
+                slot.dataset.t = 'D';
                 const strip = slot.querySelector('.odometer-strip');
                 strip.style.transition = 'none';
                 strip.style.transform = `translateY(-${parseInt(ch) * 10}%)`;
                 container.appendChild(slot);
+                strips.push(strip);
             } else {
-                const s = document.createElement('span');
-                s.className = ch === '€' ? 'cur' : 'sep';
-                s.textContent = ch; s.dataset.t = ch;
-                container.appendChild(s);
+                const sep = document.createElement('span');
+                sep.className = ch === '€' ? 'cur' : 'sep';
+                sep.textContent = ch;
+                sep.dataset.t = ch;
+                container.appendChild(sep);
+                strips.push(null);
             }
         }
+        container._od = { sig: targetSig, strips, chars };
         return;
     }
 
-    for (let i = 0; i < existing.length; i++) {
-        const el = existing[i], ch = str[i];
-        if (el.dataset.t === 'D' && ch >= '0' && ch <= '9') {
-            const strip = el.querySelector('.odometer-strip');
-            strip.style.transition = 'transform 0.4s cubic-bezier(0.25,0.1,0.25,1)';
-            strip.style.transform = `translateY(-${parseInt(ch) * 10}%)`;
-        }
+    // mismo numero de digitos: solo se animan los que han cambiado
+    const { strips, chars } = cache;
+    for (let i = 0; i < str.length; i++) {
+        const ch = str[i];
+        if (chars[i] === ch || !strips[i]) continue;
+        chars[i] = ch;
+        strips[i].style.transition = 'transform 0.4s cubic-bezier(0.25,0.1,0.25,1)';
+        strips[i].style.transform = `translateY(-${parseInt(ch) * 10}%)`;
     }
 }
 
@@ -421,8 +431,8 @@ function renderChart(spec) {
     let svg = '';
     ticks.forEach(tv => {
         const gy = y(tv);
-        svg += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - padR}" y2="${gy.toFixed(1)}" stroke="rgba(120,150,255,0.12)" stroke-width="1"/>`;
-        svg += `<text x="${padL - 9}" y="${(gy + 4).toFixed(1)}" text-anchor="end" font-size="12" fill="var(--text-dim)">${esc(chartValue(tv, spec.unit))}</text>`;
+        svg += `<line x1="${padL}" y1="${gy.toFixed(0)}" x2="${W - padR}" y2="${gy.toFixed(0)}" stroke="rgba(120,150,255,0.12)" stroke-width="1"/>`;
+        svg += `<text x="${padL - 9}" y="${(gy + 4).toFixed(0)}" text-anchor="end" font-size="12" fill="var(--text-dim)">${esc(chartValue(tv, spec.unit))}</text>`;
     });
 
     if (spec.band) {
@@ -442,7 +452,7 @@ function renderChart(spec) {
         const bw = Math.max(1.5, plotW / periods.length * 0.7);
         pts.forEach(p => {
             const vy = y(p[1]);
-            svg += `<rect x="${(x(p[0]) - bw / 2).toFixed(1)}" y="${vy.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.5, y(lo) - vy).toFixed(1)}" fill="url(#barGrad)"/>`;
+            svg += `<rect x="${(x(p[0]) - bw / 2).toFixed(0)}" y="${vy.toFixed(0)}" width="${bw.toFixed(1)}" height="${Math.max(1, y(lo) - vy).toFixed(0)}" fill="url(#barGrad)"/>`;
         });
     } else {
         if (pts2) {
@@ -595,10 +605,28 @@ function renderHousingMetrics(metrics) {
     renderMetricCards('#housingMetrics', metrics);
 }
 
+const chartSpecs = new Map();
+let chartObserver = null;
+
+function ensureChartObserver() {
+    if (chartObserver || typeof IntersectionObserver === 'undefined') return chartObserver;
+    chartObserver = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const body = entry.target;
+            const spec = chartSpecs.get(body.dataset.chartId);
+            if (spec) body.innerHTML = renderChart(spec);
+            obs.unobserve(body);
+        });
+    }, { rootMargin: '250px 0px' });
+    return chartObserver;
+}
+
 function renderChartsInto(containerSel, charts) {
     const wrap = $(containerSel);
     if (!wrap) return;
     wrap.innerHTML = '';
+    const observer = ensureChartObserver();
     charts.forEach(spec => {
         const card = document.createElement('div');
         card.className = 'chart-card';
@@ -623,7 +651,11 @@ function renderChartsInto(containerSel, charts) {
                 legend.querySelector('.lg-' + key).textContent = t('chart.' + spec.id + '.' + key);
             });
         }
-        card.querySelector('.chart-body').innerHTML = renderChart(spec);
+        const body = card.querySelector('.chart-body');
+        body.dataset.chartId = spec.id;
+        chartSpecs.set(spec.id, spec);
+        if (observer) observer.observe(body);
+        else body.innerHTML = renderChart(spec);
         if (spec.estimate) {
             const note = document.createElement('p');
             note.className = 'chart-note';
@@ -879,17 +911,29 @@ function setLang(lang) {
     tick();
 }
 
+async function fetchJson(src) {
+    const res = await fetch(src, { cache: 'no-store' });
+    if (!res.ok) throw new Error(String(res.status));
+    return res.json();
+}
+
 async function loadData() {
-    for (const src of ['api/data', 'data/data.json']) {
-        try {
-            const res = await fetch(src, { cache: 'no-store' });
-            if (!res.ok) throw new Error(String(res.status));
-            return await res.json();
-        } catch (err) {
-            // prueba la siguiente fuente (API -> snapshot estatico)
-        }
+    // El snapshot estatico (mismo origen, cacheable y precargado) permite pintar
+    // de inmediato; despues se revalida contra la API sin bloquear el primer render.
+    try {
+        const snapshot = await fetchJson('data/data.json');
+        fetchJson('api/data').then(fresh => {
+            if (fresh.meta.generatedAt !== snapshot.meta.generatedAt) {
+                state.data = fresh;
+                renderAll();
+                setupReveal();
+            }
+        }).catch(() => {});
+        return snapshot;
+    } catch (err) {
+        // sin snapshot: se usa la API directamente
+        try { return await fetchJson('api/data'); } catch (err2) { return null; }
     }
-    return null;
 }
 
 async function init() {
@@ -913,7 +957,7 @@ async function init() {
     setupReveal();
 
     tick();
-    setInterval(tick, 200);
+    setInterval(tick, 500);
 }
 
 init();

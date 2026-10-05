@@ -133,7 +133,11 @@ document.registerAll('[data-reveal], #m3Chart', [document._els['#m3Chart']]);
 global.document = document;
 global.localStorage = { _s: {}, getItem(k) { return this._s[k] || null; }, setItem(k, v) { this._s[k] = v; } };
 global.navigator = { language: 'es-ES' };
-global.IntersectionObserver = class { observe() {} unobserve() {} };
+global.IntersectionObserver = class {
+    constructor(cb) { this.cb = cb; }
+    observe(el) { this.cb([{ isIntersecting: true, target: el }], this); }
+    unobserve() {}
+};
 global.setInterval = () => 0;
 
 const DATA = JSON.parse(fs.readFileSync(path.join(FRONTEND, 'data/data.json'), 'utf8'));
@@ -148,15 +152,16 @@ const appSrc = fs.readFileSync(path.join(FRONTEND, 'assets/app.js'), 'utf8');
 const i18nSrc = fs.readFileSync(path.join(FRONTEND, 'assets/i18n.js'), 'utf8');
 
 (async () => {
-    eval(i18nSrc + '\n' + appSrc + '\n;globalThis.EXPOSE = { setLang, updatePrices, I18N };');
-    const { setLang, updatePrices, I18N } = globalThis.EXPOSE;
+    eval(i18nSrc + '\n' + appSrc + '\n;globalThis.EXPOSE = { setLang, updatePrices, I18N, tick, updateOdometer };');
+    const { setLang, updatePrices, I18N, tick, updateOdometer } = globalThis.EXPOSE;
     await new Promise(r => setTimeout(r, 50));
 
     const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; } else console.log('OK:', msg); };
     const els = document._els;
     const housing = DATA.problems.housing;
 
-    assert(fetched[0] === 'api/data', 'la primera fuente es la API');
+    assert(fetched[0] === 'data/data.json', 'pinta primero con el snapshot estatico: ' + fetched[0]);
+    assert(fetched.includes('api/data'), 'y revalida en segundo plano contra la API');
     assert(document.documentElement.lang === 'es', 'idioma inicial ES');
     // ninguna etiqueta de navegacion puede quedar sin texto (clave i18n que falte)
     const navKeys = ['nav.housing', 'nav.inflation', 'nav.pensions', 'nav.faq'];
@@ -251,6 +256,19 @@ const i18nSrc = fs.readFileSync(path.join(FRONTEND, 'assets/i18n.js'), 'utf8');
     assert(depChart.querySelector('.chart-body').innerHTML.includes('stroke-dasharray'), 'la proyección va a trazos');
     const firstPensMetric = els['#pensionsMetrics'].children[0];
     assert(/%/.test(firstPensMetric.querySelector('.metric-value').textContent), 'métrica de gasto en %: ' + firstPensMetric.querySelector('.metric-value').textContent);
+    // render diferido de gráficos: cada cuerpo sabe qué gráfico le corresponde
+    assert(firstChart.querySelector('.chart-body').dataset.chartId === 'hpi', 'el gráfico conoce su id para el render diferido');
+    // odómetro: cachea los strips y solo anima los dígitos que cambian
+    assert(els['#heroCounter']._od && els['#heroCounter']._od.strips.length === els['#heroCounter'].children.length,
+        'el odómetro cachea sus strips');
+    const t0 = Date.now();
+    let n = 17613983000000;
+    for (let i = 0; i < 200; i++) {
+        n += 12345;
+        updateOdometer(els['#heroCounter'], n.toLocaleString('es-ES') + ' €');
+    }
+    const tickMs = Date.now() - t0;
+    assert(tickMs < 300, `200 actualizaciones del odómetro en ${tickMs} ms`);
     assert(els['#m3Chart'].children.length === 12, 'gráfico M3: 12 columnas');
     assert(els['#priceGrid'].children.length === DATA.hicp.categories.length + DATA.items.length, 'tarjetas de precios');
     assert(els['#faqList'].children.length === 11, 'FAQ: 11 preguntas');
