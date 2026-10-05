@@ -1,11 +1,12 @@
 # ESProblemas
 
-Los grandes problemas económicos de España, con datos oficiales y análisis liberal. Bilingüe ES/EN.
+Los grandes problemas económicos de España, con datos oficiales. Bilingüe ES/EN.
 
 **Ahora mismo:**
 
-- **Problema 01 · Vivienda**: índice de precios un 33% por encima del pico de 2007, visados de obra nueva un 73% por debajo del máximo de 2006, hogares +1,3 M desde 2021 — con las causas de raíz y las soluciones liberales.
-- **Problema 02 · Inflación**: por qué tu euro compra cada vez menos. Tarjetas de poder de compra (100 € de 1999 compran hoy ~179 €; los ahorros sin interés pierden ~24% en una década), contador en vivo de creación de dinero (~15.600 €/s), gráfico de M3 desde 1980 y slider de precios con el HICP oficial.
+- **Problema 01 · Vivienda**: índice de precios un 33% por encima del pico de 2007, visados de obra nueva un 73% por debajo del máximo de 2006, hogares +1,3 M desde 2021 — con las causas de raíz y las soluciones propuestas.
+- **Problema 02 · Inflación**: por qué tu euro compra cada vez menos. Tarjetas de poder de compra (100 € de 1999 compran hoy ~179 €; los ahorros sin interés pierden ~24% en una década), contador en vivo de creación de dinero (~15.600 €/s), gráfico de M3 desde 1980, el carrito de la compra medido en euros (+82% desde 1999) y en oro (−88%: una onza compra hoy más de ocho veces lo de 1999), mitos, causas y soluciones monetarias (patrón oro con su coste real, banca libre, reservas al 100%, objetivo 0% y deflación benigna por productividad) y slider de precios con el HICP oficial.
+- **Problema 03 · Pensiones**: el sistema de reparto como promesa política, no como cuenta propia, con **estimación propia hasta 2050** (elasticidad observada gasto/dependencia, marcada como estimación), **comparación con educación** (protección social 18,7% del PIB frente a 4,1% en 2024) y un **simulador de cuenta individual**: para un salario medio (29.540 €, INE) cotizando el 37% durante 40 años, el capital acumulado sería de 660 k€ (2% real) a 1,69 M€ (6% real), frente a los 524 k€ que el sistema devuelve en total (con la esperanza de vida oficial de 21,9 años). Incluye la aclaración de rentabilidad **real** (descontada la inflación) y **referencias históricas calculadas**: deuda pública española +0,95% real (1999-2025, Eurostat) y −0,63% (última década), deuda EE.UU. +1,12% y renta variable EE.UU. **+7,62% real (1945-2025)**. Gasto en pensiones del 6,7% al 9,3% del PIB (2011-2024) y la dependencia (65+ por 100 de 20-64) subiendo de 31 a **63,7 en 2050** según Eurostat, con mitos, causas y una propuesta de cuentas individuales capitalizadas.
 - **FAQ** por problema y fuentes enlazadas para verificar cada dato.
 
 El contador en vivo es client-side: el navegador interpola `base + (ahora − fecha_base) × €/s` a partir del último dato oficial (lag típico: 3-4 semanas).
@@ -109,12 +110,24 @@ node frontend/tests/dom_smoke.js   # smoke test del frontend (sin dependencias)
 | Vivienda | Hogares y tamaño medio del hogar (trimestral) | INE | tablas 60133 y 60132 |
 | Inflación | M3 / M2 / M1 de la eurozona (mensual, 1980-) | BCE | `BSI.M.U2.Y.V.M30/M20/M10...` |
 | Inflación | HICP índices y tasa (1996-) | BCE/Eurostat | `ICP...INX/ANR` + `HICP...4D0.INX/ANR` |
+| Inflación | PIB real per cápita ES (2000-) | Eurostat | `sdg_08_10` (CLV20_EUR_HAB) |
+| Inflación | Oro LBMA en EUR, mensual (1999-) | World Gold Council | `lbma_am_eur` (fsapi.gold.org) |
+| Pensiones | Gasto en pensiones de vejez (% PIB, 1995-) | Eurostat | `spr_exp_pens` (spdepb=OLD, PC_GDP) |
+| Pensiones | Dependencia de mayores 65+/20-64 (1960-) | Eurostat | `demo_pjanind` (OLDDEP1) |
+| Pensiones | Proyección de población 65+ y 20-64 (2022-2100) | Eurostat | `proj_23np` (BSL) |
+| Pensiones | Gasto en educación y protección social (% PIB, 1990-) | Eurostat | `gov_10a_exp` (COFOG GF09/GF10, na_item=TE) |
+| Pensiones | Salario medio bruto anual (2008-) | INE | tabla 28185 (EAES) |
+| Pensiones | Tasa de reemplazo de las pensiones (2010-) | Eurostat | `ilc_pnp3` |
+| Pensiones | Esperanza de vida a los 65 años (1975-) | Eurostat | `demo_mlexpec` (Y65) |
+| Pensiones | Bono español a 10 años (1978-) | Eurostat | `irt_lt_mcby_a` |
+| Pensiones | Inflación de España (1997-) | Eurostat | `prc_hicp_manr` (CP00) |
+| Pensiones | Rentabilidad real acciones/bonos EE.UU. (1928-) | Damodaran (NYU, académico) | `histretSP.xls` |
 
 El cambio metodológico del HICP (feb-2026) partió las series: el ETL encadena ambas bases en dic-2025 usando el solapamiento 2024-2025.
 
 ## Criterio editorial
 
-Los datos son oficiales y verificables (enlazados en cada gráfico). La interpretación de las causas sigue el marco liberal de la escuela austriaca (Juan Ramón Rallo, Instituto Juan de Mariana), citado en la sección de fuentes de cada problema.
+Los datos son oficiales y verificables (enlazados en cada gráfico). La interpretación de las causas de cada problema es editorial; los datos son oficiales, verificables y están enlazados en cada gráfico.
 
 ## Licencia
 

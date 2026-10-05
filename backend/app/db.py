@@ -7,6 +7,7 @@ import os
 import time
 
 import psycopg
+from psycopg.types.json import Json
 from psycopg_pool import ConnectionPool
 
 log = logging.getLogger("esproblemas.db")
@@ -22,6 +23,13 @@ DDL_STATEMENTS = [
     )
     """,
     "CREATE INDEX IF NOT EXISTS obs_series_period_idx ON obs (series, period DESC)",
+    """
+    CREATE TABLE IF NOT EXISTS meta (
+        key        TEXT PRIMARY KEY,
+        value      JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+    """,
     """
     CREATE TABLE IF NOT EXISTS runs (
         id          BIGSERIAL PRIMARY KEY,
@@ -103,6 +111,21 @@ def latest_period(pool: ConnectionPool, series: str) -> str | None:
         cur.execute("SELECT max(period) FROM obs WHERE series = %s", (series,))
         row = cur.fetchone()
         return row[0] if row and row[0] else None
+
+
+def set_meta(pool: ConnectionPool, key: str, value) -> None:
+    with pool.connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO meta (key, value) VALUES (%s, %s)"
+            " ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()",
+            (key, Json(value)),
+        )
+
+
+def load_meta(pool: ConnectionPool) -> dict:
+    with pool.connection() as conn, conn.cursor() as cur:
+        cur.execute("SELECT key, value FROM meta")
+        return {key: value for key, value in cur.fetchall()}
 
 
 def start_run(pool: ConnectionPool, mode: str) -> int:

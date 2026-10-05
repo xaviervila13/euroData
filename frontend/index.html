@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESProblemas — Los grandes problemas económicos de España, con datos</title>
-    <meta name="description" content="Vivienda, precios y Estado: los grandes problemas económicos de España con gráficos de fuentes oficiales (INE, Eurostat, BCE), su causa de raíz y el análisis liberal. / Spain's biggest economic problems in official data.">
+    <meta name="description" content="Vivienda, precios y Estado: los grandes problemas económicos de España con gráficos de fuentes oficiales (INE, Eurostat, BCE), su causa de raíz y las soluciones posibles. / Spain's biggest economic problems in official data.">
     <meta property="og:title" content="ESProblemas — Spain's economic problems, in official data">
     <meta property="og:description" content="Housing prices 33% above the 2007 bubble peak. €17.6 trillion of eurozone money supply. Every problem with its official chart and root cause.">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="ESProblemas — Spain's economic problems, in official data">
-    <meta name="twitter:description" content="Housing, money and the state: Spain's biggest problems with official charts and liberal analysis.">
+    <meta name="twitter:description" content="Housing, money and the state: Spain's biggest problems with official charts and root-cause analysis.">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='1' width='30' height='30' rx='8' fill='%230d1b3e' stroke='%23ffcc00' stroke-width='1.5'/%3E%3Crect x='8' y='6' width='16' height='4.5' rx='2.25' fill='%23ffcc00'/%3E%3Ctext x='16' y='26' text-anchor='middle' font-size='14' font-weight='bold' fill='%23ffcc00' font-family='monospace'%3E%E2%82%AC%3C/text%3E%3C/svg%3E">
     <script type="application/ld+json">
     {
@@ -55,6 +55,7 @@
     <nav class="header-links">
         <a href="#vivienda" class="active" data-i18n="nav.housing"></a>
         <a href="#inflacion" data-i18n="nav.inflation"></a>
+        <a href="#pensiones" data-i18n="nav.pensions"></a>
         <a href="#faq" data-i18n="nav.faq"></a>
     </nav>
     <div class="lang-toggle">
@@ -160,6 +161,32 @@
                 <div class="m3-years" id="m3Years"></div>
             </div>
 
+            <div class="gift-block">
+                <h3 class="block-title" data-i18n="infl.giftTitle"></h3>
+                <p class="gift-note" data-i18n="infl.giftNote"></p>
+                <div class="charts-grid" id="inflationCharts"></div>
+            </div>
+
+            <div class="analysis-grid">
+                <div class="analysis-block">
+                    <h3 class="block-title" data-i18n="infl.mythsTitle"></h3>
+                    <div class="myth-list" id="inflMythsList"></div>
+                </div>
+                <div class="analysis-block">
+                    <h3 class="block-title" data-i18n="infl.causesTitle"></h3>
+                    <ul class="claim-list causes" id="inflCausesList"></ul>
+                </div>
+                <div class="analysis-block">
+                    <h3 class="block-title" data-i18n="infl.solutionsTitle"></h3>
+                    <ul class="claim-list solutions" id="inflSolutionsList"></ul>
+                </div>
+            </div>
+
+            <div class="sources-block">
+                <h3 class="block-title" data-i18n="infl.sourcesTitle"></h3>
+                <ul class="sources-list" id="inflSources"></ul>
+            </div>
+
             <div class="quote-break">
                 <blockquote data-i18n="quote.text"></blockquote>
                 <cite data-i18n="quote.cite"></cite>
@@ -190,6 +217,61 @@
                         <p class="price-note" data-i18n="infl.approxNote"></p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="problem-section" id="pensiones">
+        <div class="problem-inner">
+            <div class="problem-head">
+                <div class="problem-eyebrow" data-i18n="pensions.eyebrow"></div>
+                <h2 class="problem-title" data-reveal data-i18n="pensions.title"></h2>
+                <p class="problem-lede" id="pensionsSub"></p>
+            </div>
+
+            <div class="metric-grid" id="pensionsMetrics"></div>
+
+            <h3 class="block-title" data-i18n="pensions.chartsTitle"></h3>
+            <div class="charts-grid" id="pensionsCharts"></div>
+
+            <div class="analysis-grid">
+                <div class="analysis-block">
+                    <h3 class="block-title" data-i18n="pensions.mythsTitle"></h3>
+                    <div class="myth-list" id="pensionsMythsList"></div>
+                </div>
+                <div class="analysis-block">
+                    <h3 class="block-title" data-i18n="pensions.causesTitle"></h3>
+                    <ul class="claim-list causes" id="pensionsCausesList"></ul>
+                </div>
+                <div class="analysis-block">
+                    <h3 class="block-title" data-i18n="pensions.solutionsTitle"></h3>
+                    <ul class="claim-list solutions" id="pensionsSolutionsList"></ul>
+                </div>
+            </div>
+
+            <div class="sim-block">
+                <h3 class="block-title" data-i18n="pensions.simTitle"></h3>
+                <p class="gift-note" id="pensionsSimLede"></p>
+                <div class="metric-grid" id="pensionsSimMetrics"></div>
+                <div class="charts-grid" id="pensionsSimCharts"></div>
+
+                <h3 class="block-title" data-i18n="pensions.realTitle"></h3>
+                <p class="gift-note" data-i18n="pensions.realNote"></p>
+
+                <h3 class="block-title" data-i18n="pensions.refTitle"></h3>
+                <p class="gift-note" data-i18n="pensions.refLede"></p>
+                <div class="metric-grid" id="pensionsRefs"></div>
+                <p class="disclaimer" data-i18n="sim.refNote"></p>
+
+                <h3 class="block-title" data-i18n="pensions.assumptionsTitle"></h3>
+                <ul class="assumption-list" id="pensionsAssumptions"></ul>
+                <p class="disclaimer" data-i18n="sim.note"></p>
+            </div>
+
+            <div class="sources-block">
+                <h3 class="block-title" data-i18n="pensions.sourcesTitle"></h3>
+                <ul class="sources-list" id="pensionsSources"></ul>
+                <p class="disclaimer" data-i18n="pensions.disclaimer"></p>
             </div>
         </div>
     </section>

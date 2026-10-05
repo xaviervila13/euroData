@@ -19,6 +19,11 @@ const CAT_ICONS = { '000000': 'euro', '011000': 'food', '045000': 'bolt', '04110
 const CHART_YEARS = [1980, 1990, 1999, 2005, 2010, 2015, 2019, 2020, 2021, 2022, 2024, null];
 const CHART_SOURCES = {
     hpi: 'Eurostat · prc_hpi_q',
+    basket_gold: 'HICP (BCE/Eurostat) + LBMA Gold Price (WGC)',
+    old_dep: 'Eurostat · demo_pjanind + proj_23np',
+    pension_spend: 'Eurostat · spr_exp_pens',
+    spend_compare: 'Eurostat · gov_10a_exp (COFOG)',
+    pension_sim: 'INE · salario medio + Eurostat · reemplazo y esperanza de vida',
     permits: 'Eurostat · sts_cobp_a',
     population: 'Eurostat · demo_pjan',
     inmigracion: 'Eurostat · migr_imm1ctz',
@@ -56,6 +61,13 @@ function fmtCompact(v) {
     if (abs >= 1e6) return '€' + numFmt(abs / 1e6, abs >= 1e7 ? 0 : 1) + 'M';
     if (abs >= 1e3) return '€' + numFmt(abs / 1e3, 0) + 'K';
     return '€' + numFmt(abs, 0);
+}
+
+function fmtEuroCompact(v) {
+    const abs = Math.abs(v);
+    if (abs >= 1e6) return state.lang === 'es' ? numFmt(v / 1e6, 2) + ' M€' : '€' + numFmt(v / 1e6, 2) + 'M';
+    if (abs >= 1e3) return state.lang === 'es' ? numFmt(v / 1e3, 0) + ' k€' : '€' + numFmt(v / 1e3, 0) + 'k';
+    return state.lang === 'es' ? numFmt(v, 0) + ' €' : '€' + numFmt(v, 0);
 }
 
 function fmtTrillions(vM) {
@@ -218,11 +230,21 @@ function renderInflationCards() {
     });
 }
 
+function renderInflationLists() {
+    renderMythList('#inflMythsList', I18N[state.lang].inflMyths);
+    renderClaimList('#inflCausesList', I18N[state.lang].inflCauses);
+    renderClaimList('#inflSolutionsList', I18N[state.lang].inflSolutions);
+    renderSources('#inflSources', state.data.problems.inflation.sources);
+}
+
 function renderInflation() {
     const m3 = state.data.monetary.m3;
     $('#moneyAmount').textContent = fmtTrillions(m3.baseValueM);
     $('#moneySub').innerHTML = tmpl('infl.lede', { rate: fmtMoney(Math.round(m3.perSecond), 0) });
     renderInflationCards();
+    renderChartsInto('#inflationCharts', state.data.problems.inflation.charts);
+    renderInflationLists();
+    renderPensions();
 }
 
 function buildMoneyChart() {
@@ -270,6 +292,14 @@ function chartValue(v, unit) {
     if (v === 0) return '0';
     if (unit === 'index') return numFmt(v, 1);
     if (unit === 'thousand') return numFmt(v, 0) + (state.lang === 'es' ? ' mil' : 'k');
+    if (unit === 'ratio') return numFmt(v, 0);
+    if (unit === 'pct_gdp') return numFmt(v, 0) + '%';
+    if (unit === 'euro_hab') return state.lang === 'es' ? numFmt(v, 0) + ' €' : '€' + numFmt(v, 0);
+    if (unit === 'euro') {
+        if (Math.abs(v) >= 1e6) return (state.lang === 'es' ? numFmt(v / 1e6, 1) + ' M€' : '€' + numFmt(v / 1e6, 1) + 'M');
+        if (Math.abs(v) >= 1e3) return (state.lang === 'es' ? numFmt(v / 1e3, 0) + ' k€' : '€' + numFmt(v / 1e3, 0) + 'k');
+        return (state.lang === 'es' ? numFmt(v, 0) + ' €' : '€' + numFmt(v, 0));
+    }
     if (unit === 'people') {
         const a = Math.abs(v);
         if (a >= 1e6) return numFmt(v / 1e6, 1) + ' M';
@@ -297,17 +327,21 @@ function niceTicks(lo, hi, count) {
     return { ticks, step };
 }
 
-function xTickIndices(pts, maxTicks) {
+function xTickIndices(pts, maxTicks, geom) {
     const n = pts.length;
     const first = pts[0][0];
     const isQuarter = first.includes('-Q');
     const isMonth = /^\d{4}-\d{2}$/.test(first);
+    const plotW = (geom && geom.plotW) || 600;
+    const padL = (geom && geom.padL) || 0;
+    // separación mínima entre etiquetas, en índices
+    const minGap = Math.max(Math.ceil(n / (maxTicks + 1)), 1);
+    let idxs;
+
     if (isQuarter || isMonth) {
-        const perYear = isQuarter ? 4 : 12;
-        const yearSpan = Math.max(1, Math.round(n / perYear));
-        const yearStep = Math.max(1, Math.ceil(yearSpan / maxTicks));
-        const idxs = [];
+        idxs = [];
         let year = null;
+        const yearStep = Math.max(1, Math.ceil(Math.max(1, Math.round(n / (isQuarter ? 4 : 12))) / maxTicks));
         for (let i = 0; i < n; i++) {
             const y = Number(pts[i][0].slice(0, 4));
             if (y !== year) {
@@ -315,16 +349,26 @@ function xTickIndices(pts, maxTicks) {
                 if (idxs.length === 0 || y % yearStep === 0) idxs.push(i);
             }
         }
-        return idxs;
+    } else {
+        const step = Math.max(1, Math.ceil(n / (maxTicks + 1)));
+        idxs = [];
+        for (let i = 0; i < n; i += step) idxs.push(i);
     }
-    const step = Math.max(1, Math.ceil(n / maxTicks));
-    const idxs = [];
-    for (let i = 0; i < n; i += step) idxs.push(i);
+
+    // el punto final solo si no pisa al anterior
     if (idxs[idxs.length - 1] !== n - 1) {
-        if (n - 1 - idxs[idxs.length - 1] >= step / 2) idxs.push(n - 1);
-        else idxs[idxs.length - 1] = n - 1;
+        if (n - 1 - idxs[idxs.length - 1] >= minGap) {
+            idxs.push(n - 1);
+        } else if (idxs.length > 1) {
+            idxs[idxs.length - 1] = n - 1;
+        }
     }
-    return idxs;
+    // elimina cualquier etiqueta que siga demasiado cerca de la siguiente
+    // (comparación en píxeles: en series largas un paso de índice es muy pequeño)
+    const posOf = (i) => padL + plotW * i / (n - 1);
+    const pxMin = Math.max(46, Math.round((plotW || 600) / 11));
+    const kept = idxs.filter((v, k) => k === idxs.length - 1 || posOf(idxs[k + 1]) - posOf(v) >= pxMin);
+    return kept.length >= 2 ? kept : idxs;
 }
 
 function tickLabel(period, step) {
@@ -340,18 +384,39 @@ function tickLabel(period, step) {
 
 function renderChart(spec) {
     const W = 680, H = 275, padL = 62, padR = 18, padT = 28, padB = 36;
-    const pts = spec.series;
-    const values = pts.map(p => p[1]);
-    const vmin = Math.min(...values), vmax = Math.max(...values);
+    const norm = (arr) => arr ? arr.map(r => [String(r[0]), r[1]]) : null;
+    const pts = norm(spec.series);
+    const pts2 = norm(spec.series2);
+    const pts3 = norm(spec.series3);
+    const allValues = pts.map(p => p[1])
+        .concat(pts2 ? pts2.map(p => p[1]) : [])
+        .concat(pts3 ? pts3.map(p => p[1]) : [])
+        .concat(spec.reference ? [spec.reference.value] : []);
+    const vmin = Math.min(...allValues), vmax = Math.max(...allValues);
     const span = (vmax - vmin) || 1;
     let lo = spec.type === 'bars' ? Math.min(0, vmin) : vmin - span * 0.08;
     let hi = vmax + span * 0.16;
     const { ticks } = niceTicks(lo, hi, spec.type === 'bars' ? 4 : 5);
 
+    const periods = Array.from(new Set(
+        pts.map(p => p[0])
+            .concat(pts2 ? pts2.map(p => p[0]) : [])
+            .concat(pts3 ? pts3.map(p => p[0]) : [])
+    ));
+    const numericX = periods.every(p => /^\d+$/.test(p));
+    periods.sort(numericX ? (a, b) => Number(a) - Number(b) : undefined);
     const plotW = W - padL - padR, plotH = H - padT - padB;
-    const x = (i) => padL + (pts.length === 1 ? plotW / 2 : plotW * i / (pts.length - 1));
+    const x = (period) => {
+        const i = periods.indexOf(period);
+        return padL + (periods.length === 1 ? plotW / 2 : plotW * i / (periods.length - 1));
+    };
     const y = (v) => padT + plotH * (1 - (v - lo) / (hi - lo));
     const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const line = (series, color, dashed) => {
+        const path = series.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ');
+        const dash = dashed ? ' stroke-dasharray="7 5" stroke-width="2.2"' : ' stroke-width="2.6"';
+        return `<path d="${path}" fill="none" stroke="${color}"${dash} stroke-linejoin="round"/>`;
+    };
 
     let svg = '';
     ticks.forEach(tv => {
@@ -361,11 +426,11 @@ function renderChart(spec) {
     });
 
     if (spec.band) {
-        const i0 = pts.findIndex(p => p[0] >= spec.band.from);
+        const i0 = periods.findIndex(p => p >= spec.band.from);
         let i1 = -1;
-        pts.forEach((p, i) => { if (p[0] <= spec.band.to) i1 = i; });
+        periods.forEach((p, i) => { if (p <= spec.band.to) i1 = i; });
         if (i0 >= 0 && i1 > i0) {
-            const bx = x(i0), bw = Math.max(2, x(i1) - x(i0));
+            const bx = x(periods[i0]), bw = Math.max(2, x(periods[i1]) - x(periods[i0]));
             svg += `<rect x="${bx.toFixed(1)}" y="${padT}" width="${bw.toFixed(1)}" height="${plotH}" fill="rgba(255,90,95,0.10)"/>`;
             if (bw > 64) {
                 svg += `<text x="${(bx + bw / 2).toFixed(1)}" y="${padT + 13}" text-anchor="middle" font-size="12" fill="rgba(255,90,95,0.85)">${esc(t('chart.crisis'))}</text>`;
@@ -374,22 +439,34 @@ function renderChart(spec) {
     }
 
     if (spec.type === 'bars') {
-        const bw = Math.max(1.5, plotW / pts.length * 0.7);
-        pts.forEach((p, i) => {
+        const bw = Math.max(1.5, plotW / periods.length * 0.7);
+        pts.forEach(p => {
             const vy = y(p[1]);
-            svg += `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${vy.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.5, y(lo) - vy).toFixed(1)}" fill="url(#barGrad)"/>`;
+            svg += `<rect x="${(x(p[0]) - bw / 2).toFixed(1)}" y="${vy.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.5, y(lo) - vy).toFixed(1)}" fill="url(#barGrad)"/>`;
         });
     } else {
-        const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ');
-        svg += `<path d="${path}" fill="none" stroke="#ffcc00" stroke-width="2.6" stroke-linejoin="round"/>`;
-        const area = `${path} L${x(pts.length - 1).toFixed(1)},${y(lo).toFixed(1)} L${x(0).toFixed(1)},${y(lo).toFixed(1)} Z`;
-        svg += `<path d="${area}" fill="url(#areaGrad)" stroke="none"/>`;
+        if (pts2) {
+            const dashed2 = Boolean(spec.projectionFrom);
+            svg += line(pts2, dashed2 ? '#8fa8d8' : '#4d8bff', dashed2);
+        } else {
+            const area = `${pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ')} L${x(pts[pts.length - 1][0]).toFixed(1)},${y(lo).toFixed(1)} L${x(pts[0][0]).toFixed(1)},${y(lo).toFixed(1)} Z`;
+            svg += `<path d="${area}" fill="url(#areaGrad)" stroke="none"/>`;
+        }
+        svg += line(pts, '#ffcc00');
+        if (pts3) svg += line(pts3, '#3fd0c9');
+    }
+
+    if (spec.reference) {
+        const ry = y(spec.reference.value);
+        svg += `<line x1="${padL}" y1="${ry.toFixed(1)}" x2="${W - padR}" y2="${ry.toFixed(1)}" stroke="rgba(255,90,95,0.75)" stroke-width="1.6" stroke-dasharray="6 4"/>`;
+        const rlabel = esc(t('chart.' + spec.id + '.ref'));
+        svg += `<text x="${padL}" y="${(ry - 6).toFixed(1)}" text-anchor="start" font-size="11" fill="rgba(255,120,125,0.95)">${rlabel}</text>`;
     }
 
     if (spec.peak) {
         const idx = pts.findIndex(p => p[0] === spec.peak.period);
         if (idx >= 0) {
-            const px = x(idx), py = y(spec.peak.value);
+            const px = x(spec.peak.period), py = y(spec.peak.value);
             const label = esc(tmpl('chart.peak', { year: yearOf(spec.peak.period) }));
             const lx = Math.min(Math.max(px, padL + 30), W - padR - 30);
             svg += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="#ff5a5f"/>`;
@@ -398,13 +475,13 @@ function renderChart(spec) {
     }
 
     const maxTicks = 6;
-    const step = Math.max(1, Math.ceil(pts.length / maxTicks));
-    const idxs = xTickIndices(pts, maxTicks);
+    const step = Math.max(1, Math.ceil(periods.length / maxTicks));
+    const idxs = xTickIndices(periods.map(p => [p, 0]), maxTicks, { padL, plotW });
     idxs.forEach((i, k) => {
-        const tx = x(i);
-        const anchor = k === 0 ? 'start' : (i === pts.length - 1 ? 'end' : 'middle');
+        const tx = x(periods[i]);
+        const anchor = k === 0 ? 'start' : (i === periods.length - 1 ? 'end' : 'middle');
         svg += `<line x1="${tx.toFixed(1)}" y1="${padT + plotH}" x2="${tx.toFixed(1)}" y2="${padT + plotH + 5}" stroke="rgba(120,150,255,0.3)" stroke-width="1"/>`;
-        svg += `<text x="${tx.toFixed(1)}" y="${H - 11}" text-anchor="${anchor}" font-size="12" fill="var(--text-dim)">${esc(tickLabel(pts[i][0], step))}</text>`;
+        svg += `<text x="${tx.toFixed(1)}" y="${H - 11}" text-anchor="${anchor}" font-size="12" fill="var(--text-dim)">${esc(tickLabel(periods[i], step))}</text>`;
     });
 
     return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('chart.' + spec.id + '.title'))}">
@@ -423,6 +500,21 @@ function renderChart(spec) {
 // ── Sección vivienda ──
 const METRIC_VALUE = {
     hpi: (v) => numFmt(v, 1),
+    gdp_pc_es: (v) => (state.lang === 'es' ? numFmt(v, 0) + ' €' : '€' + numFmt(v, 0)),
+    basket_eur: (v) => numFmt(v, 0) + (state.lang === 'es' ? ' €' : ''),
+    basket_gold: (v) => (v > 0 ? '+' : '') + numFmt(v, 0) + '%',
+    pension_spend: (v) => numFmt(v, 2) + '%',
+    pension_spend_2050: (v) => numFmt(v, 1) + '%',
+    edu_spend: (v) => numFmt(v, 1) + '%',
+    sim_capital_low: (v) => fmtEuroCompact(v),
+    sim_capital_mid: (v) => fmtEuroCompact(v),
+    sim_capital_high: (v) => fmtEuroCompact(v),
+    sim_income_mid: (v) => fmtEuroCompact(v) + (state.lang === 'es' ? '/año' : '/yr'),
+    sim_pension: (v) => fmtEuroCompact(v) + (state.lang === 'es' ? '/año' : '/yr'),
+    sim_system_total: (v) => fmtEuroCompact(v),
+    old_dep: (v) => numFmt(v, 1),
+    old_dep_2050: (v) => numFmt(v, 1),
+    pensioners_2050: (v) => numFmt(v, 1) + ' M',
     hpi_yoy: (v) => (v > 0 ? '+' : '') + numFmt(v, 1) + '%',
     visados: (v) => numFmt(v, 0) + (state.lang === 'es' ? ' mil' : 'k'),
     hogares: (v) => numFmt(v / 1e6, 2) + ' M',
@@ -431,8 +523,9 @@ const METRIC_VALUE = {
     poblacion: (v) => numFmt(v / 1e6, 1) + ' M'
 };
 
-function renderHousingMetrics(metrics) {
-    const wrap = $('#housingMetrics');
+function renderMetricCards(sel, metrics) {
+    const wrap = $(sel);
+    if (!wrap) return;
     wrap.innerHTML = '';
     metrics.forEach(m => {
         if (m.value === null || m.value === undefined) return;
@@ -441,18 +534,14 @@ function renderHousingMetrics(metrics) {
         if (m.extra !== null && m.extra !== undefined && m.extraRef) {
             const ref = yearOf(m.extraRef);
             if (m.id === 'hogares' || m.id === 'poblacion') {
-                extra = '+' + numFmt(Math.abs(m.extra), 2) + ' ' + tmpl('metric.' + m.id + '.extra', { ref });
+                extra = '+' + numFmt(Math.abs(m.extra), 2) + tmpl('metric.' + m.id + '.extra', { ref });
             } else {
                 extra = (m.extra > 0 ? '+' : '') + numFmt(m.extra, 1) + tmpl('metric.' + m.id + '.extra', { ref });
             }
         }
         const card = document.createElement('div');
         card.className = 'metric-card';
-        card.innerHTML = `
-            <div class="metric-label"></div>
-            <div class="metric-value"></div>
-            <div class="metric-extra"></div>
-            <div class="metric-foot"><span class="metric-source"></span></div>`;
+        card.innerHTML = `<div class="metric-label"></div><div class="metric-value"></div><div class="metric-extra"></div><div class="metric-foot"><span class="metric-source"></span></div>`;
         card.querySelector('.metric-label').textContent = label;
         card.querySelector('.metric-value').textContent = METRIC_VALUE[m.id] ? METRIC_VALUE[m.id](m.value) : String(m.value);
         card.querySelector('.metric-extra').textContent = extra;
@@ -461,56 +550,36 @@ function renderHousingMetrics(metrics) {
     });
 }
 
-function renderHousingCharts(charts) {
-    const wrap = $('#housingCharts');
+function renderMythList(sel, items) {
+    const wrap = $(sel);
+    if (!wrap) return;
     wrap.innerHTML = '';
-    charts.forEach(spec => {
-        const card = document.createElement('div');
-        card.className = 'chart-card' + (spec.id === 'hpi' ? ' wide' : '');
-        card.innerHTML = `
-            <div class="chart-head">
-                <h4 class="chart-title"></h4>
-                <span class="chart-source"></span>
-            </div>
-            <div class="chart-body"></div>`;
-        card.querySelector('.chart-title').textContent = t('chart.' + spec.id + '.title');
-        card.querySelector('.chart-source').textContent = t('chart.source') + ': ' + (CHART_SOURCES[spec.id] || '');
-        card.querySelector('.chart-body').innerHTML = renderChart(spec);
-        wrap.appendChild(card);
-    });
-}
-
-function renderHousingLists() {
-    const myths = $('#housingMyths');
-    myths.innerHTML = '';
-    I18N[state.lang].housingMyths.forEach(item => {
+    items.forEach(item => {
         const div = document.createElement('div');
         div.className = 'myth-item';
         div.innerHTML = '<div class="myth-q"></div><p class="myth-a"></p>';
         div.querySelector('.myth-q').textContent = item.q;
         div.querySelector('.myth-a').textContent = item.a;
-        myths.appendChild(div);
+        wrap.appendChild(div);
     });
+}
 
-    const causes = $('#housingCauses');
-    causes.innerHTML = '';
-    I18N[state.lang].housingCauses.forEach(text => {
+function renderClaimList(sel, items) {
+    const ul = $(sel);
+    if (!ul) return;
+    ul.innerHTML = '';
+    items.forEach(text => {
         const li = document.createElement('li');
         li.textContent = text;
-        causes.appendChild(li);
+        ul.appendChild(li);
     });
+}
 
-    const solutions = $('#housingSolutions');
-    solutions.innerHTML = '';
-    I18N[state.lang].housingSolutions.forEach(text => {
-        const li = document.createElement('li');
-        li.textContent = text;
-        solutions.appendChild(li);
-    });
-
-    const sources = $('#housingSources');
-    sources.innerHTML = '';
-    state.data.problems.housing.sources.concat(I18N[state.lang].housingRefs).forEach(src => {
+function renderSources(sel, sources) {
+    const ul = $(sel);
+    if (!ul) return;
+    ul.innerHTML = '';
+    sources.forEach(src => {
         const li = document.createElement('li');
         const a = document.createElement('a');
         a.href = src.url;
@@ -518,8 +587,62 @@ function renderHousingLists() {
         a.rel = 'noopener';
         a.textContent = src.label;
         li.appendChild(a);
-        sources.appendChild(li);
+        ul.appendChild(li);
     });
+}
+
+function renderHousingMetrics(metrics) {
+    renderMetricCards('#housingMetrics', metrics);
+}
+
+function renderChartsInto(containerSel, charts) {
+    const wrap = $(containerSel);
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    charts.forEach(spec => {
+        const card = document.createElement('div');
+        card.className = 'chart-card';
+        card.innerHTML = `
+            <div class="chart-head">
+                <h4 class="chart-title"></h4>
+                <span class="chart-source"></span>
+            </div>
+            <div class="chart-legend"></div>
+            <div class="chart-body"></div>`;
+        card.querySelector('.chart-title').textContent = t('chart.' + spec.id + '.title');
+        card.querySelector('.chart-source').textContent = t('chart.source') + ': ' + (CHART_SOURCES[spec.id] || '');
+        const legend = card.querySelector('.chart-legend');
+        if (spec.series2) {
+            const items = [
+                ['gold', 'a'], ['blue', 'b']
+            ];
+            if (spec.series3) items.push(['teal', 'c']);
+            legend.innerHTML = items.map(([cls, key]) =>
+                `<span class="legend-item"><i class="dot ${cls}"></i><span class="lg-${key}"></span></span>`).join('');
+            items.forEach(([, key]) => {
+                legend.querySelector('.lg-' + key).textContent = t('chart.' + spec.id + '.' + key);
+            });
+        }
+        card.querySelector('.chart-body').innerHTML = renderChart(spec);
+        if (spec.estimate) {
+            const note = document.createElement('p');
+            note.className = 'chart-note';
+            note.textContent = t('chart.estimateNote');
+            card.appendChild(note);
+        }
+        wrap.appendChild(card);
+    });
+}
+
+function renderHousingCharts(charts) {
+    renderChartsInto('#housingCharts', charts);
+}
+
+function renderHousingLists() {
+    renderMythList('#housingMyths', I18N[state.lang].housingMyths);
+    renderClaimList('#housingCauses', I18N[state.lang].housingCauses);
+    renderClaimList('#housingSolutions', I18N[state.lang].housingSolutions);
+    renderSources('#housingSources', state.data.problems.housing.sources);
 }
 
 function renderHousing() {
@@ -677,6 +800,64 @@ function bindEvents() {
     });
     const slider = $('#yearSlider');
     slider.addEventListener('input', () => updatePrices(+slider.value));
+}
+
+function renderPensionsAssumptions(assumptions) {
+    const ul = $('#pensionsAssumptions');
+    if (!ul) return;
+    ul.innerHTML = '';
+    const fmt = {
+        salary: (a) => numFmt(a.value, 0) + ' €',
+        rate: (a) => numFmt(a.value, 1) + ' %',
+        contribution: (a) => numFmt(a.value, 0) + ' €',
+        replacement: (a) => numFmt(a.value, 0) + ' %',
+        life: (a) => numFmt(a.value, 1) + (state.lang === 'es' ? ' años' : ' years'),
+        returns: (a) => a.value.map(v => numFmt(v, 0) + ' %').join(' / '),
+        withdrawal: (a) => numFmt(a.value, 0) + ' %'
+    };
+    assumptions.forEach(a => {
+        const li = document.createElement('li');
+        const label = tmpl('sim.assumption.' + a.key, { period: a.period || '' });
+        const value = fmt[a.key] ? fmt[a.key](a) : String(a.value);
+        li.innerHTML = '<strong></strong> · <span></span>';
+        li.querySelector('strong').textContent = value;
+        li.querySelector('span').textContent = label;
+        ul.appendChild(li);
+    });
+}
+
+function renderReferenceCards(sel, refs) {
+    const wrap = $(sel);
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    refs.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'metric-card' + (r.value < 0 ? ' ref-negative' : '');
+        card.innerHTML = `<div class="metric-label"></div><div class="metric-value"></div><div class="metric-extra"></div><div class="metric-foot"><span class="metric-source"></span></div>`;
+        card.querySelector('.metric-label').textContent = t('sim.ref.' + r.key + '.label');
+        card.querySelector('.metric-value').textContent = (r.value > 0 ? '+' : '') + numFmt(r.value, 2) + '%';
+        card.querySelector('.metric-extra').textContent = tmpl('sim.ref.' + r.key + '.note', { period: r.period });
+        card.querySelector('.metric-source').textContent = r.source;
+        wrap.appendChild(card);
+    });
+}
+
+function renderPensions() {
+    const p = state.data.problems.pensions;
+    renderMetricCards('#pensionsMetrics', p.metrics);
+    renderChartsInto('#pensionsCharts', p.charts);
+    renderMythList('#pensionsMythsList', I18N[state.lang].pensionsMyths);
+    renderClaimList('#pensionsCausesList', I18N[state.lang].pensionsCauses);
+    renderClaimList('#pensionsSolutionsList', I18N[state.lang].pensionsSolutions);
+    renderSources('#pensionsSources', p.sources);
+    $('#pensionsSub').innerHTML = I18N[state.lang]['pensions.lede'];
+    if (p.simulator) {
+        $('#pensionsSimLede').textContent = I18N[state.lang]['pensions.simLede'];
+        renderMetricCards('#pensionsSimMetrics', p.simulator.metrics);
+        renderChartsInto('#pensionsSimCharts', p.simulator.charts);
+        renderPensionsAssumptions(p.simulator.assumptions);
+        renderReferenceCards('#pensionsRefs', p.simulator.references || []);
+    }
 }
 
 function renderAll() {

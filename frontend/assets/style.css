@@ -538,6 +538,26 @@ footer::before {
     color: white; margin: 46px 0 18px;
 }
 
+.chart-legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 2px 0 8px; }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted); }
+.legend-item .dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+.legend-item .dot.gold { background: var(--gold); }
+.legend-item .dot.blue { background: #4d8bff; }
+.legend-item .dot.teal { background: #3fd0c9; }
+.sim-block { margin-top: 50px; }
+.sim-block .block-title { margin-top: 0; }
+.metric-card.ref-negative .metric-value { color: var(--red); }
+.metric-card.ref-negative { border-color: rgba(255, 90, 95, 0.35); }
+.assumption-list { list-style: none; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 20px; margin-bottom: 16px; }
+.assumption-list li { font-size: 0.82rem; line-height: 1.5; color: var(--text-muted); }
+.assumption-list li strong { color: var(--text); font-family: var(--font-mono); font-size: 0.78rem; }
+@media (max-width: 768px) { .metric-card.ref-negative .metric-value { color: var(--red); }
+.metric-card.ref-negative { border-color: rgba(255, 90, 95, 0.35); }
+.assumption-list { grid-template-columns: 1fr; } }
+.gift-block { margin-top: 46px; }
+.gift-block .block-title { margin-top: 0; }
+.gift-note { font-size: 0.95rem; line-height: 1.7; color: var(--text-muted); max-width: 880px; margin-bottom: 20px; }
+
 .pain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 30px; }
 .pain-card {
     background: rgba(255, 204, 0, 0.06);
@@ -575,6 +595,7 @@ footer::before {
 .chart-title { font-family: var(--font-display); font-size: 1rem; font-weight: 600; color: var(--text); }
 .chart-source { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-dim); white-space: nowrap; }
 .chart-body svg { width: 100%; height: auto; display: block; }
+.chart-note { margin-top: 10px; font-size: 0.74rem; line-height: 1.55; color: var(--text-dim); border-left: 2px solid var(--gold-border); padding-left: 10px; }
 
 .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .analysis-block {

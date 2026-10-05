@@ -40,7 +40,7 @@ function el(tag) {
 function matches(elm, sel) {
     if (sel.startsWith('#')) return elm.id === sel.slice(1);
     if (sel.startsWith('.')) return elm._class.has(sel.slice(1));
-    return false;
+    return elm.tagName === sel.toUpperCase();
 }
 
 function selectIn(root, sel) {
@@ -93,7 +93,11 @@ const document = {
 ['#heroCounter', '#rateValue', '#lastOfficialChip', '#statSec', '#statMin', '#statHour', '#statDay',
     '#moneyAmount', '#moneySub', '#moneyChartSub', '#m3Chart', '#m3Years',
     '#housingMetrics', '#housingCharts', '#housingMyths', '#housingCauses', '#housingSolutions',
-    '#housingSources', '#inflationCards', '#priceGrid', '#faqList', '#yearSlider', '#sliderYear'
+    '#housingSources', '#inflationCards', '#inflationCharts', '#inflMythsList',
+    '#inflCausesList', '#inflSolutionsList', '#inflSources', '#pensionsMetrics', '#pensionsCharts', '#pensionsSub',
+    '#pensionsMythsList', '#pensionsCausesList', '#pensionsSolutionsList', '#pensionsSources',
+    '#pensionsSimMetrics', '#pensionsSimCharts', '#pensionsAssumptions', '#pensionsSimLede', '#pensionsRefs',
+    '#priceGrid', '#faqList', '#yearSlider', '#sliderYear'
 ].forEach(sel => {
     const node = el('div');
     if (sel === '#yearSlider') { node.max = '6'; node.value = '0'; node.min = '0'; }
@@ -104,12 +108,20 @@ const langBtns = [el('button'), el('button')];
 langBtns[0].dataset.lang = 'es'; langBtns[1].dataset.lang = 'en';
 document.registerAll('.lang-btn', langBtns);
 
-const i18nKeys = ['nav.housing', 'nav.inflation', 'nav.faq', 'site.eyebrow', 'site.title', 'site.lede',
+const i18nKeys = ['nav.housing', 'nav.inflation', 'nav.pensions', 'nav.faq', 'site.eyebrow', 'site.title', 'site.lede',
     'live.label', 'rate.pre', 'rate.post', 'stats.sec', 'stats.min', 'stats.hour', 'stats.day',
     'housing.eyebrow', 'housing.title', 'housing.lede', 'housing.chartsTitle', 'housing.mythsTitle',
     'housing.causesTitle', 'housing.solutionsTitle', 'housing.sourcesTitle', 'housing.disclaimer',
     'infl.eyebrow', 'infl.headline.pre', 'infl.headline.hl', 'infl.chart.title', 'infl.m3note',
-    'infl.card.pp.label', 'infl.card.savings.label', 'quote.text', 'quote.cite',
+    'infl.card.pp.label', 'infl.card.savings.label', 'infl.giftTitle', 'infl.giftNote',
+    'metric.basket_eur.label', 'metric.basket_gold.label',
+    'pensions.eyebrow', 'pensions.title', 'pensions.lede', 'pensions.mythsTitle',
+    'pensions.causesTitle', 'pensions.solutionsTitle', 'pensions.sourcesTitle', 'pensions.disclaimer',
+    'metric.pension_spend.label', 'metric.old_dep.label', 'metric.old_dep_2050.label',
+    'pensions.simTitle', 'pensions.simLede', 'pensions.assumptionsTitle', 'sim.note',
+    'pensions.realTitle', 'pensions.realNote', 'pensions.refTitle', 'pensions.refLede', 'sim.refNote',
+    'metric.sim_capital_mid.label', 'metric.sim_pension.label',
+    'infl.mythsTitle', 'infl.causesTitle', 'infl.solutionsTitle', 'infl.sourcesTitle', 'quote.text', 'quote.cite',
     'infl.title.pre', 'infl.title.red', 'infl.sub', 'infl.sliderLabel', 'infl.hicpNote', 'infl.approxNote',
     'faq.title', 'footer.made', 'footer.license', 'footer.estimate'];
 const i18nEls = i18nKeys.map(k => { const n = el('span'); n.dataset.i18n = k; return n; });
@@ -136,8 +148,8 @@ const appSrc = fs.readFileSync(path.join(FRONTEND, 'assets/app.js'), 'utf8');
 const i18nSrc = fs.readFileSync(path.join(FRONTEND, 'assets/i18n.js'), 'utf8');
 
 (async () => {
-    eval(i18nSrc + '\n' + appSrc + '\n;globalThis.EXPOSE = { setLang, updatePrices };');
-    const { setLang, updatePrices } = globalThis.EXPOSE;
+    eval(i18nSrc + '\n' + appSrc + '\n;globalThis.EXPOSE = { setLang, updatePrices, I18N };');
+    const { setLang, updatePrices, I18N } = globalThis.EXPOSE;
     await new Promise(r => setTimeout(r, 50));
 
     const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; } else console.log('OK:', msg); };
@@ -146,6 +158,16 @@ const i18nSrc = fs.readFileSync(path.join(FRONTEND, 'assets/i18n.js'), 'utf8');
 
     assert(fetched[0] === 'api/data', 'la primera fuente es la API');
     assert(document.documentElement.lang === 'es', 'idioma inicial ES');
+    // ninguna etiqueta de navegacion puede quedar sin texto (clave i18n que falte)
+    const navKeys = ['nav.housing', 'nav.inflation', 'nav.pensions', 'nav.faq'];
+    const navMissing = navKeys.filter(k => {
+        const el = i18nEls.find(e => e.dataset.i18n === k);
+        return !el || !el.textContent || el.textContent === 'undefined';
+    });
+    assert(navMissing.length === 0, 'enlaces de navegacion con texto: ' + (navMissing.join(', ') || 'todos OK'));
+    // y todas las claves i18n usadas en el HTML deben existir
+    const missingKeys = i18nEls.filter(e => !I18N.es[e.dataset.i18n] || !I18N.en[e.dataset.i18n]).map(e => e.dataset.i18n);
+    assert(missingKeys.length === 0, 'claves i18n definidas en ES y EN: ' + (missingKeys.join(', ') || 'todas OK'));
 
     const rate = Math.round(DATA.monetary.m3.perSecond).toLocaleString('es-ES');
     assert(els['#rateValue'].textContent === rate + ' €', 'ritmo ES coincide con el dato: ' + els['#rateValue'].textContent);
@@ -173,7 +195,7 @@ const i18nSrc = fs.readFileSync(path.join(FRONTEND, 'assets/i18n.js'), 'utf8');
     assert(els['#housingMyths'].children.length === 4, 'mitos: 4');
     assert(els['#housingCauses'].children.length === 5, 'causas: 5');
     assert(els['#housingSolutions'].children.length === 5, 'soluciones: 5');
-    assert(els['#housingSources'].children.length === housing.sources.length + 3, 'fuentes: datos + referencias');
+    assert(els['#housingSources'].children.length === housing.sources.length, 'fuentes de vivienda');
 
     const hpiMetric = els['#housingMetrics'].children[0];
     assert(hpiMetric.querySelector('.metric-label').textContent.includes('2015=100'), 'etiqueta métrica HPI');
@@ -187,6 +209,48 @@ const i18nSrc = fs.readFileSync(path.join(FRONTEND, 'assets/i18n.js'), 'utf8');
     const savCard = els['#inflationCards'].children[1];
     assert(/[−-]\d/.test(savCard.querySelector('.metric-value').textContent), 'tarjeta ahorros: ' + savCard.querySelector('.metric-value').textContent);
     assert(els['#moneySub'].innerHTML.includes('15.610 €'), 'lede de inflación con el ritmo');
+    const inflCharts = els['#inflationCharts'].children;
+    assert(inflCharts.length === DATA.problems.inflation.charts.length, 'gráficos de inflación: ' + inflCharts.length);
+    const twoSeries = inflCharts[0];
+    assert(twoSeries.querySelector('.chart-legend').children.length === 2, 'leyenda de 2 series en el gráfico dinero/PIB');
+    assert(twoSeries.querySelector('.lg-b').textContent.includes('oro'), 'etiqueta de la segunda serie: ' + twoSeries.querySelector('.lg-b').textContent);
+    assert(/<svg/.test(twoSeries.querySelector('.chart-body').innerHTML), 'gráfico de 2 series renderiza');
+    assert(els['#inflMythsList'].children.length === 3, 'mitos de inflación: 3');
+    assert(els['#inflCausesList'].children.length === 4, 'causas de inflación: 4');
+    assert(els['#inflSolutionsList'].children.length === 5, 'soluciones de inflación: 5');
+    assert(els['#inflSources'].children.length === DATA.problems.inflation.sources.length, 'fuentes de inflación');
+    const pens = DATA.problems.pensions;
+    assert(els['#pensionsMetrics'].children.length === pens.metrics.length, 'métricas de pensiones: ' + els['#pensionsMetrics'].children.length);
+    assert(els['#pensionsCharts'].children.length === pens.charts.length, 'gráficos de pensiones: ' + els['#pensionsCharts'].children.length);
+    const sim = pens.simulator;
+    assert(els['#pensionsSimMetrics'].children.length === sim.metrics.length, 'métricas del simulador: ' + els['#pensionsSimMetrics'].children.length);
+    assert(els['#pensionsSimCharts'].children.length === sim.charts.length, 'gráfico del simulador');
+    assert(els['#pensionsAssumptions'].children.length === sim.assumptions.length, 'supuestos listados: ' + els['#pensionsAssumptions'].children.length);
+    assert(els['#pensionsRefs'].children.length === sim.references.length, 'tarjetas de referencia: ' + els['#pensionsRefs'].children.length);
+    const stockRef = els['#pensionsRefs'].children[sim.references.length - 1];
+    assert(/\+7/.test(stockRef.querySelector('.metric-value').textContent), 'referencia de bolsa ~7%: ' + stockRef.querySelector('.metric-value').textContent);
+    const bondRef = els['#pensionsRefs'].children[0];
+    assert(/\+0\.95|\+0,95/.test(bondRef.querySelector('.metric-value').textContent), 'deuda española real: ' + bondRef.querySelector('.metric-value').textContent);
+    const negativeRef = els['#pensionsRefs'].children[1];
+    assert(negativeRef._class.has('ref-negative'), 'la última década de deuda española se marca como negativa');
+    const simChart = els['#pensionsSimCharts'].children[0];
+    assert(simChart.querySelector('.chart-legend').children.length === 3, 'leyenda con 3 escenarios');
+    const simSvg = simChart.querySelector('.chart-body').innerHTML;
+    assert(simSvg.includes('stroke-dasharray'), 'el gráfico lleva la línea de referencia');
+    assert(/M€|k€/.test(els['#pensionsSimMetrics'].children[1].querySelector('.metric-value').textContent), 'capital formateado en €: ' + els['#pensionsSimMetrics'].children[1].querySelector('.metric-value').textContent);
+    const spendChart = els['#pensionsCharts'].children[1];
+    assert(spendChart.querySelector('.chart-body').innerHTML.includes('stroke-dasharray'), 'el gasto en pensiones proyecta a trazos');
+    assert(spendChart.querySelector('.chart-note') !== null, 'el gráfico de estimación lleva nota metodológica');
+    assert(els['#pensionsCharts'].children[2].querySelector('.chart-legend').children.length === 2, 'leyenda del comparativo social/educación');
+    assert(els['#pensionsMythsList'].children.length === 5, 'mitos de pensiones: 5');
+    assert(els['#pensionsCausesList'].children.length === 5, 'causas de pensiones: 5');
+    assert(els['#pensionsSolutionsList'].children.length === 5, 'soluciones de pensiones: 5');
+    assert(els['#pensionsSources'].children.length === pens.sources.length, 'fuentes de pensiones');
+    const depChart = els['#pensionsCharts'].children[0];
+    assert(depChart.querySelector('.chart-legend').children.length === 2, 'leyenda observado/proyección');
+    assert(depChart.querySelector('.chart-body').innerHTML.includes('stroke-dasharray'), 'la proyección va a trazos');
+    const firstPensMetric = els['#pensionsMetrics'].children[0];
+    assert(/%/.test(firstPensMetric.querySelector('.metric-value').textContent), 'métrica de gasto en %: ' + firstPensMetric.querySelector('.metric-value').textContent);
     assert(els['#m3Chart'].children.length === 12, 'gráfico M3: 12 columnas');
     assert(els['#priceGrid'].children.length === DATA.hicp.categories.length + DATA.items.length, 'tarjetas de precios');
     assert(els['#faqList'].children.length === 11, 'FAQ: 11 preguntas');
@@ -205,6 +269,8 @@ const i18nSrc = fs.readFileSync(path.join(FRONTEND, 'assets/i18n.js'), 'utf8');
     assert(els['#housingMetrics'].children.length === housing.metrics.filter(m => m.value != null).length,
         'métricas tras cambio de idioma');
     assert(els['#inflationCards'].children.length === 2, 'tarjetas de inflación en EN');
+    assert(els['#pensionsMetrics'].children.length === pens.metrics.length, 'métricas de pensiones en EN');
+    assert(els['#pensionsMythsList'].children[0].querySelector('.myth-q').textContent.includes('workers'), 'primer mito de pensiones en EN');
     assert(/\+\d+%/.test(els['#inflationCards'].children[0].querySelector('.metric-extra').textContent),
         'nota de poder de compra en EN');
 

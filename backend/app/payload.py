@@ -53,6 +53,36 @@ HOUSING_SOURCES = [
      "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=60133"},
 ]
 
+INFLATION_SOURCES = [
+    {"label": "Eurostat · PIB real per cápita (sdg_08_10)",
+     "url": "https://ec.europa.eu/eurostat/databrowser/view/sdg_08_10/default/table"},
+    {"label": "BCE · masa monetaria M3 (BSI)",
+     "url": "https://data.ecb.europa.eu/data/datasets/BSI"},
+    {"label": "HICP · inflación de la eurozona (BCE/Eurostat)",
+     "url": "https://data.ecb.europa.eu/data/datasets/ICP"},
+    {"label": "World Gold Council · LBMA Gold Price (EUR)",
+     "url": "https://www.gold.org/goldhub/data/gold-prices"},
+]
+INFLATION_START_YEAR = "2005"
+BASKET_START = "1999-01"
+
+# Parametros del simulador de cuenta individual (pensiones)
+SIM_CONTRIBUTION_RATE = 0.37   # tipo total de cotizacion (Orden anual de cotizacion)
+SIM_YEARS = 40
+SIM_RETURNS = [0.02, 0.04, 0.06]   # retornos reales anuales (escenarios, no promesa)
+SIM_WITHDRAWAL = 0.04              # retirada anual sostenible asumida
+
+PENSIONS_SOURCES = [
+    {"label": "Eurostat · Gasto en pensiones por tipo (spr_exp_pens)",
+     "url": "https://ec.europa.eu/eurostat/databrowser/view/spr_exp_pens/default/table"},
+    {"label": "Eurostat · Gasto público por función (gov_10a_exp)",
+     "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10a_exp/default/table"},
+    {"label": "Eurostat · Indicadores demográficos (demo_pjanind)",
+     "url": "https://ec.europa.eu/eurostat/databrowser/view/demo_pjanind/default/table"},
+    {"label": "Eurostat · Proyecciones de población 2023 (proj_23np)",
+     "url": "https://ec.europa.eu/eurostat/databrowser/view/proj_23np/default/table"},
+]
+
 
 def _sorted(data: dict) -> list:
     return [(p, data[p]) for p in sorted(data)]
@@ -203,12 +233,224 @@ def _housing_section(store: dict) -> dict:
     }
 
 
-def build_payload(store: dict, generated_at: str | None = None) -> dict:
+def _inflation_section(store: dict, monetary: dict, hicp: dict) -> dict:
+    gdp_es = _sorted(store.get("eu:gdp_pc_es") or {})
+    gold_eur = store.get("gold:lbma_eur") or {}
+    if not gdp_es:
+        raise RuntimeError("serie de PIB real per cápita vacía")
+    if not gold_eur:
+        raise RuntimeError("serie del precio del oro vacía")
+
+    es_series = _trim(gdp_es, INFLATION_START_YEAR)
+    es_last_y, es_last_v = es_series[-1]
+    es_first = next((v for y, v in es_series if y == INFLATION_START_YEAR), es_series[0][1])
+
+    # ── El carrito de la compra: en euros y en onzas de oro (1999=100) ──
+    hicp_monthly = dict(hicp["categories"][0]["index"])
+    months = [m for m in sorted(hicp_monthly) if m >= BASKET_START and m in gold_eur]
+    if len(months) < 12:
+        raise RuntimeError("sin meses comunes entre HICP y oro para el carrito")
+    base = months[0]
+    h0, g0 = hicp_monthly[base], gold_eur[base]
+    basket_eur = [[m, round(hicp_monthly[m] / h0 * 100, 1)] for m in months]
+    basket_gold = [[m, round(hicp_monthly[m] / h0 * 100 * g0 / gold_eur[m], 1)] for m in months]
+    last_month = months[-1]
+    eur_now = dict(basket_eur)[last_month]
+    gold_now = dict(basket_gold)[last_month]
+
+    metrics = [
+        {"id": "gdp_pc_es", "value": round(es_last_v), "period": es_last_y,
+         "extra": _pct(es_last_v, es_first), "extraRef": INFLATION_START_YEAR,
+         "source": "Eurostat"},
+        {"id": "basket_eur", "value": eur_now, "period": last_month,
+         "extra": round(eur_now - 100, 0), "extraRef": base,
+         "source": "HICP · BCE/Eurostat"},
+        {"id": "basket_gold", "value": round(gold_now - 100, 0), "period": last_month,
+         "extra": round(g0, 0), "extraRef": base,
+         "source": "HICP + LBMA"},
+    ]
+
+    charts = [
+        {"id": "basket_gold", "type": "line", "unit": "index",
+         "series": basket_eur, "series2": basket_gold},
+    ]
+
+    return {"inflation": {"metrics": metrics, "charts": charts, "sources": INFLATION_SOURCES}}
+
+
+def _pension_references(store: dict, meta: dict) -> list:
+    """Rentabilidad real historica: deuda publica espanola (calculada) y referencias academicas."""
+    bond = store.get("eu:bond10y_es") or {}
+    hicp_m = store.get("eu:hicp_es_m") or {}
+    ref = (meta or {}).get("ref:real_returns") or {}
+
+    by_year: dict = {}
+    for period, value in hicp_m.items():
+        by_year.setdefault(period[:4], []).append(value)
+    hicp_y = {y: sum(v) / len(v) for y, v in by_year.items()}
+
+    def real_bond(a: str, z: str):
+        years = [y for y in sorted(bond) if a <= y <= z and y in hicp_y]
+        if len(years) < 5:
+            return None, None
+        nominal = sum(bond[y] for y in years) / len(years)
+        inflation = sum(hicp_y[y] for y in years) / len(years)
+        real = ((1 + nominal / 100) / (1 + inflation / 100) - 1) * 100
+        return round(real, 2), f"{years[0]}-{years[-1]}"
+
+    last = max(bond) if bond else None
+    items = []
+    if last:
+        value, period = real_bond("1999", last)
+        if value is not None:
+            items.append({"key": "bond_es_long", "value": value, "period": period,
+                          "source": "Eurostat (calculado)"})
+        recent_start = str(int(last) - 9)
+        value, period = real_bond(recent_start, last)
+        if value is not None:
+            items.append({"key": "bond_es_recent", "value": value, "period": period,
+                          "source": "Eurostat (calculado)"})
+    if ref:
+        items.append({"key": "bond_us_long", "value": ref["bonds"]["1945-2025"],
+                      "period": "1945-2025", "source": "Damodaran (académico)"})
+        items.append({"key": "stocks_us_long", "value": ref["stocks"]["1945-2025"],
+                      "period": "1945-2025", "source": "Damodaran (académico)"})
+    return items
+
+
+def _pensions_simulator(store: dict, meta: dict, salary: tuple, repl: float, life: float) -> dict:
+    """Simulacion de una cuenta individual capitalizada frente al sistema publico."""
+    salary_y, salary_v = salary
+    contribution = salary_v * SIM_CONTRIBUTION_RATE
+
+    def capital(n: int, rate: float) -> float:
+        if rate == 0:
+            return contribution * n
+        return contribution * (((1 + rate) ** n - 1) / rate)
+
+    capitals = {r: [[n, round(capital(n, r))] for n in range(SIM_YEARS + 1)] for r in SIM_RETURNS}
+    cap_at = {r: round(capital(SIM_YEARS, r)) for r in SIM_RETURNS}
+    public_pension = repl * salary_v
+    total_system = public_pension * life
+
+    metrics = [
+        {"id": "sim_capital_low", "value": cap_at[0.02], "period": f"{SIM_YEARS} años", "source": "Escenario 2% real"},
+        {"id": "sim_capital_mid", "value": cap_at[0.04], "period": f"{SIM_YEARS} años", "source": "Escenario 4% real"},
+        {"id": "sim_capital_high", "value": cap_at[0.06], "period": f"{SIM_YEARS} años", "source": "Escenario 6% real"},
+        {"id": "sim_income_mid", "value": round(cap_at[0.04] * SIM_WITHDRAWAL), "period": None, "source": "Retirada 4% anual"},
+        {"id": "sim_pension", "value": round(public_pension), "period": None, "source": "Eurostat + INE"},
+        {"id": "sim_system_total", "value": round(total_system), "period": None, "source": "Eurostat + INE"},
+    ]
+
+    assumptions = [
+        {"key": "salary", "value": round(salary_v), "period": salary_y},
+        {"key": "rate", "value": round(SIM_CONTRIBUTION_RATE * 100, 1)},
+        {"key": "contribution", "value": round(contribution)},
+        {"key": "replacement", "value": round(repl * 100)},
+        {"key": "life", "value": round(life, 1)},
+        {"key": "returns", "value": [round(r * 100) for r in SIM_RETURNS]},
+        {"key": "withdrawal", "value": round(SIM_WITHDRAWAL * 100)},
+    ]
+
+    charts = [
+        {"id": "pension_sim", "type": "line", "unit": "euro",
+         "series": capitals[0.04], "series2": capitals[0.02], "series3": capitals[0.06],
+         "reference": {"value": round(total_system)}},
+    ]
+
+    return {"simulator": {"metrics": metrics, "charts": charts, "assumptions": assumptions,
+                          "references": _pension_references(store, meta)}}
+
+
+def _pensions_section(store: dict, meta: dict | None = None) -> dict:
+    spend = _sorted(store.get("eu:pension_spend_es") or {})
+    dep = _sorted(store.get("eu:old_dep_es") or {})
+    proj_old = store.get("eu:proj_old_es") or {}
+    proj_act = store.get("eu:proj_active_es") or {}
+    edu = _sorted(store.get("eu:edu_spend_es") or {})
+    social = _sorted(store.get("eu:social_spend_es") or {})
+    if not spend or not dep or not proj_old or not proj_act:
+        raise RuntimeError("faltan series de pensiones")
+
+    # Ratio de dependencia: historico observado + proyeccion (hasta 2050)
+    dep_hist = [[y, round(v, 1)] for y, v in _trim(dep, "1975")]
+    proj_years = [y for y in sorted(proj_old) if "2025" <= y <= "2050" and y in proj_act]
+    dep_proj_full = [[y, round(100 * proj_old[y] / proj_act[y], 1)] for y in proj_years]
+    dep_chain = [[dep_hist[-1][0], dep_hist[-1][1]]] + dep_proj_full if dep_hist and dep_proj_full else dep_proj_full
+
+    # Gasto observado + ESTIMACION por elasticidad (2011-2024) aplicada a la demografia
+    spend_series = [[y, round(v, 2)] for y, v in _trim(spend, "1995")]
+    spend_by = dict(spend)
+    dep_by = dict(dep)
+    elasticity = None
+    if "2011" in spend_by and "2024" in spend_by and "2011" in dep_by and "2025" in dep_by:
+        elasticity = (spend_by["2024"] - spend_by["2011"]) / (dep_by["2025"] - dep_by["2011"])
+    spend_est = []
+    if elasticity:
+        base_spend, base_dep = spend_series[-1][1], dep_by.get("2025")
+        spend_est = [[y, round(base_spend + elasticity * (v - base_dep), 1)]
+                     for y, v in dep_proj_full if y > spend_series[-1][0]]
+        spend_est = [[spend_series[-1][0], spend_series[-1][1]]] + spend_est
+
+    # Comparacion con educacion (COFOG, % del PIB)
+    edu_series = [[y, round(v, 2)] for y, v in _trim(edu, "1995")] if edu else []
+    social_series = [[y, round(v, 2)] for y, v in _trim(social, "1995")] if social else []
+
+    spend_last_y, spend_last_v = spend_series[-1]
+    dep_now = dep_hist[-1][1]
+    dep_2050 = dep_proj_full[-1][1] if dep_proj_full else None
+    spend_2050 = spend_est[-1][1] if spend_est else None
+    edu_last = edu_series[-1] if edu_series else [None, None]
+
+    metrics = [
+        {"id": "pension_spend", "value": spend_last_v, "period": spend_last_y,
+         "extra": round(spend_last_v - spend_series[0][1], 2), "extraRef": spend_series[0][0],
+         "source": "Eurostat"},
+        {"id": "pension_spend_2050", "value": spend_2050, "period": "2050",
+         "source": "Estimación propia"},
+        {"id": "edu_spend", "value": edu_last[1], "period": edu_last[0],
+         "source": "Eurostat"},
+        {"id": "old_dep", "value": dep_now, "period": dep_hist[-1][0],
+         "source": "Eurostat"},
+        {"id": "old_dep_2050", "value": dep_2050, "period": "2050",
+         "source": "Eurostat (proy.)"},
+        {"id": "pensioners_2050", "value": round(proj_old.get("2050", 0) / 1e6, 1), "period": "2050",
+         "extra": round(proj_act.get("2050", 0) / 1e6, 1), "extraRef": "2050",
+         "source": "Eurostat (proy.)"},
+    ]
+
+    charts = [
+        {"id": "old_dep", "type": "line", "unit": "ratio",
+         "series": dep_hist, "series2": dep_chain, "projectionFrom": dep_hist[-1][0] if dep_hist else None},
+        {"id": "pension_spend", "type": "line", "unit": "pct_gdp",
+         "series": spend_series, "series2": spend_est,
+         "projectionFrom": spend_series[-1][0] if spend_est else None,
+         "estimate": True},
+        {"id": "spend_compare", "type": "line", "unit": "pct_gdp",
+         "series": social_series, "series2": edu_series},
+    ]
+
+    # Simulador: necesita salario (INE), tasa de reemplazo y esperanza de vida (Eurostat)
+    salary_series = _sorted(store.get("ine:salary_es") or {})
+    repl_series = _sorted(store.get("eu:replacement_es") or {})
+    life_series = _sorted(store.get("eu:life_exp65_es") or {})
+    simulator = {}
+    if salary_series and repl_series and life_series:
+        simulator = _pensions_simulator(store, meta, salary_series[-1], repl_series[-1][1], life_series[-1][1])
+    else:
+        log.warning("faltan series para el simulador de pensiones")
+
+    return {"pensions": {"metrics": metrics, "charts": charts,
+                         "sources": PENSIONS_SOURCES, **simulator}}
+
+
+def build_payload(store: dict, meta: dict | None = None, generated_at: str | None = None) -> dict:
     """Construye el payload JSON completo."""
     now_iso = generated_at or datetime.now(timezone.utc).isoformat(timespec="seconds")
     monetary = _monetary_section(store)
     hicp = _hicp_section(store)
-    problems = _housing_section(store)
+    problems = {**_housing_section(store), **_inflation_section(store, monetary, hicp),
+                **_pensions_section(store, meta)}
 
     m3_last = monetary["m3"]["basePeriod"]
     m3_date = datetime.strptime(m3_last, "%Y-%m").replace(tzinfo=timezone.utc)
@@ -228,6 +470,8 @@ def build_payload(store: dict, generated_at: str | None = None) -> dict:
                 "monetary": m3_last,
                 "hicp": latest_anr[0] if latest_anr else None,
                 "housing": problems["housing"]["metrics"][0]["period"],
+                "realGdp": problems["inflation"]["metrics"][0]["period"],
+                "pensions": problems["pensions"]["metrics"][0]["period"],
             },
             "avgMonthSeconds": AVG_MONTH_SECONDS,
             "hicpBases": "2015=100 hasta 2025-12; encadenado con 2025=100 desde 2026-01",

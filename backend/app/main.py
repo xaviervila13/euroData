@@ -52,7 +52,7 @@ def _payload(force: bool = False) -> dict:
     store = db.load_store(_state["pool"])
     if not store.get("bsi:m3"):
         raise HTTPException(status_code=503, detail="data not ready (bootstrap in progress)")
-    payload_data = payload.build_payload(store)
+    payload_data = payload.build_payload(store, db.load_meta(_state["pool"]))
     with _cache_lock:
         _state["cache"] = payload_data
         _state["cache_ts"] = time.time()
