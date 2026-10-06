@@ -212,7 +212,8 @@ def _housing_section(store: dict) -> dict:
         {"id": "hpi", "type": "line", "unit": "index",
          "series": [[p, round(v, 1)] for p, v in hpi],
          "peak": {"period": peak_p, "value": round(peak_v, 1)},
-         "band": {"from": "2008-Q1", "to": "2013-Q4"}},
+         "band": {"from": "2008-Q1", "to": "2013-Q4"},
+         "markers": [{"period": "2023-Q2", "key": "vivienda"}]},
         {"id": "permits", "type": "bars", "unit": "thousand",
          "series": [[p, round(v, 1)] for p, v in permits],
          "peak": {"period": permits_peak_y, "value": round(permits_peak_v, 1)}},
@@ -366,6 +367,7 @@ def _pensions_section(store: dict, meta: dict | None = None) -> dict:
     spend = _sorted(store.get("eu:pension_spend_es") or {})
     dep = _sorted(store.get("eu:old_dep_es") or {})
     proj_old = store.get("eu:proj_old_es") or {}
+    proj_dep = store.get("eu:proj_old_dep_es") or {}
     proj_act = store.get("eu:proj_active_es") or {}
     edu = _sorted(store.get("eu:edu_spend_es") or {})
     social = _sorted(store.get("eu:social_spend_es") or {})
@@ -374,8 +376,10 @@ def _pensions_section(store: dict, meta: dict | None = None) -> dict:
 
     # Ratio de dependencia: historico observado + proyeccion (hasta 2050)
     dep_hist = [[y, round(v, 1)] for y, v in _trim(dep, "1975")]
-    proj_years = [y for y in sorted(proj_old) if "2025" <= y <= "2050" and y in proj_act]
-    dep_proj_full = [[y, round(100 * proj_old[y] / proj_act[y], 1)] for y in proj_years]
+    # Ratio de dependencia proyectada: se usa la misma definicion que la observada
+    # (OLDDEP1) para que la union de las dos lineas sea continua.
+    proj_years = [y for y in sorted(proj_dep) if "2025" <= y <= "2050"]
+    dep_proj_full = [[y, round(proj_dep[y], 1)] for y in proj_years]
     dep_chain = [[dep_hist[-1][0], dep_hist[-1][1]]] + dep_proj_full if dep_hist and dep_proj_full else dep_proj_full
 
     # Gasto observado + ESTIMACION por elasticidad (2011-2024) aplicada a la demografia
@@ -399,6 +403,7 @@ def _pensions_section(store: dict, meta: dict | None = None) -> dict:
     spend_last_y, spend_last_v = spend_series[-1]
     dep_now = dep_hist[-1][1]
     dep_2050 = dep_proj_full[-1][1] if dep_proj_full else None
+    dep_jump = round(dep_proj_full[0][1] - dep_hist[-1][1], 1) if (dep_proj_full and dep_hist) else None
     spend_2050 = spend_est[-1][1] if spend_est else None
     edu_last = edu_series[-1] if edu_series else [None, None]
 

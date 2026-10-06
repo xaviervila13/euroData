@@ -448,6 +448,19 @@ function renderChart(spec) {
         }
     }
 
+    if (spec.markers) {
+        spec.markers.forEach(mk => {
+            const key = String(mk.period);
+            if (periods.indexOf(key) < 0) return;
+            const mx = x(key);
+            svg += `<line x1="${mx.toFixed(0)}" y1="${padT}" x2="${mx.toFixed(0)}" y2="${(padT + plotH).toFixed(0)}" stroke="rgba(77,139,255,0.55)" stroke-width="1.4" stroke-dasharray="5 4"/>`;
+            const label = esc(t('chart.' + spec.id + '.marker.' + mk.key));
+            const anchor = mx > W * 0.6 ? 'end' : 'start';
+            const lx = anchor === 'end' ? mx - 6 : mx + 6;
+            svg += `<text x="${lx.toFixed(0)}" y="${(padT + 32).toFixed(0)}" text-anchor="${anchor}" font-size="11" fill="rgba(120,170,255,0.95)">${label}</text>`;
+        });
+    }
+
     if (spec.type === 'bars') {
         const bw = Math.max(1.5, plotW / periods.length * 0.7);
         pts.forEach(p => {

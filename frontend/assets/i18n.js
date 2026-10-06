@@ -123,6 +123,7 @@ const I18N = {
         'metric.loading': 'sin datos',
 
         'chart.hpi.title': 'Precio de la vivienda (índice, 2015=100)',
+        'chart.hpi.marker.vivienda': 'Ley de Vivienda · may 2023',
         'chart.permits.title': 'Visados de obra nueva de vivienda (miles)',
         'chart.population.title': 'Población de España',
         'chart.hogares.title': 'Hogares (trimestral, desde 2021)',
@@ -177,18 +178,18 @@ const I18N = {
             'El coste invisible del ahorro: mientras la inflación media supera el interés de los depósitos, ahorrar es perder. Eso empuja a rentabilidades forzadas —deuda, especulación, activos— que quizá no querías correr.'
         ],
         inflSolutions: [
-            'Moneda respaldada por un activo escaso (patrón oro u equivalente): devuelve la disciplina al emisor, con un coste real (≈2,5% del PIB anual en extraer oro) y sin política monetaria discrecional.',
-            'Banca libre y monedas competidoras: emisores obligados a redimir su moneda; la competencia disciplina la emisión mejor que un banco central.',
-            'Reservas al 100% en los depósitos a la vista: la banca deja de crear dinero al prestar; el crédito sigue existiendo, pero con ahorro previo.',
-            'Blindar el poder de compra con reglas, no con promesas: objetivo de inflación 0% y dejar que la productividad abarate los precios con el tiempo (deflación benigna).',
-            'Quitar los privilegios del dinero de curso forzoso: fin del rescate monetario de la deuda pública y tipos libres para que el ahorro reciba un interés real.'
+            'Moneda respaldada por un activo escaso (patrón oro o equivalente): solo se puede crear dinero si se tiene el oro que lo respalda, así que nadie puede imprimir a voluntad. Tiene un coste real (≈2,5% del PIB anual en extraer oro) y le quita al Gobierno la opción de decidir cuánto dinero hay.',
+            'Que el dinero lo emitan varias entidades en competencia, no una sola: si una emite de más, su dinero pierde valor y sus clientes se pasan a otra. La disciplina vendría de perder clientes, no de la buena intención de un banco central.',
+            'El dinero de tu cuenta, completo en el banco: la entidad no podría prestarlo todo ni crear dinero nuevo al conceder créditos. Seguiría habiendo préstamos, pero solo con ahorro que alguien haya depositado antes.',
+            'Reglas claras en vez de promesas: fijar el objetivo de inflación en el 0% y dejar que, cuando se produzca mejor, los precios bajen poco a poco (deflación buena).',
+            'Que el Estado no pueda financiar su gasto creando dinero: si gasta más de lo que ingresa, que lo pida prestado a precio de mercado. Y tipos de interés libres, para que tus ahorros ganen al menos lo que sube la vida.'
         ],
         pensionsMyths: [
             { q: '«El sistema es de los trabajadores»', a: 'El sistema de reparto no guarda tu dinero: lo que cotizas hoy se gasta hoy en pagar las pensiones de hoy. No hay una cuenta a tu nombre y, por tanto, no hay nada tuyo que puedas reclamar. Lo que tienes es una promesa política, no un derecho de propiedad.' },
             { q: '«Los pensionistas actuales se lo ganaron»', a: 'Cierto: cotizaron durante décadas. El problema no es suyo, es del diseño: ese dinero ya se gastó en su momento, así que sus pensiones se pagan con las cotizaciones de los que trabajan ahora. Cuando la proporción de trabajadores cae, la promesa se sostiene subiendo impuestos o recortando lo prometido.' },
             { q: '«Capitalizar es privatizar la jubilación»', a: 'Capitalizar significa que cada euro cotizado va a una cuenta a tu nombre y se invierte. No desaparece la protección: cambia quién decide. En vez de que un Gobierno fije tu pensión cada año, decides tú con tu dinero. Varios países europeos ya combinan reparto y capitalización.' },
             { q: '«Las pensiones son intocables: es el gasto sagrado»', a: 'En 2024 la protección social ya se llevaba el 18,7% del PIB frente al 4,1% de toda la educación pública. Sostener la promesa no consiste en encontrar dinero nuevo: consiste en desplazar cada vez más recursos del resto de funciones del Estado. Y con la demografía proyectada, la estimación es que el gasto en pensiones de vejez ronde el 23% del PIB en 2050.' },
-            { q: '«No hay alternativa: es lo que hay en toda Europa»', a: 'Todos los sistemas de reparto europeos afrontan el mismo problema demográfico, y varios lo están corrigiendo con cuentas individuales y fondos. La alternativa existe; lo que no existe es una solución indolora: la transición hay que financiarla de alguna manera. Lo honesto es decirlo, no negarlo.' }
+            { q: '«Ya lo arreglará la inmigración»', a: 'La inmigración aporta cotizantes y alivia la ratio a corto plazo, pero es un parche: quienes llegan también acumularán derechos de pensión, así que el problema se traslada en el tiempo en lugar de resolverse. Y no basta con más gente: incluso con las hipótesis de inmigración que maneja Eurostat, la población de 20 a 64 años cae de 29,4 a 25,9 millones en 2050. Sin cambiar el sistema, la presión se repite —y de paso tensa vivienda, salarios y servicios públicos.' }
         ],
         pensionsCauses: [
             'Es un sistema de reparto (pay-as-you-go): cada generación paga la pensión de la anterior. Funciona solo si la siguiente generación es igual o mayor, y ese supuesto se ha roto.',
@@ -406,6 +407,7 @@ const I18N = {
         'metric.loading': 'no data',
 
         'chart.hpi.title': 'House price index (2015=100)',
+        'chart.hpi.marker.vivienda': 'Housing Act · May 2023',
         'chart.permits.title': 'New-build housing permits (thousands)',
         'chart.population.title': 'Population of Spain',
         'chart.hogares.title': 'Households (quarterly, since 2021)',
@@ -460,18 +462,18 @@ const I18N = {
             'The invisible cost of saving: while average inflation beats deposit rates, saving means losing. That pushes people into forced yields — debt, speculation, assets — they may not have wanted.'
         ],
         inflSolutions: [
-            'Money backed by a scarce asset (gold standard or equivalent): restores discipline on the issuer, at a real cost (≈2.5% of GDP a year mining gold) and with no discretionary monetary policy.',
-            'Free banking and competing currencies: issuers obliged to redeem their money; competition disciplines issuance better than a central bank.',
-            '100% reserves on sight deposits: banks stop creating money when they lend; credit still exists, but backed by prior saving.',
-            'Shielding purchasing power with rules, not promises: a 0% inflation target, letting productivity make prices cheaper over time (benign deflation).',
-            'Removing the privileges of legal-tender money: no more monetary rescue of public debt and free interest rates so saving earns a real return.'
+            'Money backed by a scarce asset (gold or equivalent): money can only be created if you hold the gold backing it, so nobody can print at will. It has a real cost (≈2.5% of GDP a year mining gold) and it takes away the government\'s ability to decide how much money exists.',
+            'Let several competing entities issue money, not just one: if one issues too much, its money loses value and its customers switch to another. Discipline would come from losing customers, not from a central bank\'s good intentions.',
+            'The money in your account, fully held by the bank: it could not lend it all out or create new money when granting loans. Loans would still exist, but only backed by savings someone deposited first.',
+            'Clear rules instead of promises: set the inflation target at 0% and let prices fall slowly over time as we produce better (good deflation).',
+            'The state should not be able to fund its spending by creating money: if it spends more than it takes in, let it borrow at market prices. And free interest rates, so your savings earn at least as much as prices rise.'
         ],
         pensionsMyths: [
             { q: '"The system belongs to the workers"', a: 'A pay-as-you-go system does not store your money: what you pay in today is spent today paying today\'s pensions. There is no account in your name and therefore nothing of yours to claim. What you hold is a political promise, not a property right.' },
             { q: '"Today\'s pensioners earned it"', a: 'True: they paid in for decades. The problem is not theirs, it is the design: that money was spent at the time, so their pensions are paid with the contributions of those working now. When the ratio of workers falls, the promise survives only by raising taxes or cutting what was promised.' },
             { q: '"Capitalising means privatising retirement"', a: 'Capitalising means every euro contributed goes into an account in your name and is invested. Protection does not disappear: who decides changes. Instead of a government setting your pension every year, you decide with your own money. Several European countries already combine pay-as-you-go with capitalisation.' },
             { q: '"Pensions are untouchable: sacred spending"', a: 'In 2024 social protection already took 18.7% of GDP versus 4.1% for all public education. Keeping the promise does not mean finding new money: it means shifting ever more resources away from the rest of the state\'s functions. And with projected demographics, the estimate is that old-age pension spending will approach 23% of GDP by 2050.' },
-            { q: '"There is no alternative: this is how Europe does it"', a: 'Every European pay-as-you-go system faces the same demographic problem, and several are fixing it with individual accounts and funds. The alternative exists; what does not exist is a painless solution: the transition has to be financed somehow. The honest thing is to say so, not deny it.' }
+            { q: '"Immigration will fix it"', a: 'Immigration adds contributors and eases the ratio in the short run, but it is a patch: those who arrive will also accrue pension rights, so the problem is postponed rather than solved. And more people are not enough: even under Eurostat\'s migration assumptions, the population aged 20 to 64 falls from 29.4 to 25.9 million by 2050. Without changing the system, the pressure returns — while straining housing, wages and public services.' }
         ],
         pensionsCauses: [
             'It is a pay-as-you-go system: each generation pays the previous one\'s pension. It only works if the next generation is at least as large, and that assumption has broken down.',

@@ -21,6 +21,11 @@ EUROSTAT_SERIES = {
     "eu:proj_old_es": ("proj_23np", {
         "freq": "A", "projection": "BSL", "sex": "T", "age": "Y_GE65", "unit": "PER", "geo": "ES",
     }),
+    # Proyeccion de la MISMA ratio de dependencia (OLDDEP1) que la serie observada,
+    # escenario base 2022-2100. Evita el salto que produce calcularla con otra fuente.
+    "eu:proj_old_dep_es": ("proj_23ndbi", {
+        "freq": "A", "projection": "BSL", "indic_de": "OLDDEP1", "geo": "ES",
+    }),
     # Proyeccion de poblacion 20-64 (escenario base), 2022-2100
     "eu:proj_active_es": ("proj_23np", {
         "freq": "A", "projection": "BSL", "sex": "T", "age": "Y20-64", "unit": "PER", "geo": "ES",
