@@ -9,13 +9,12 @@ const ICONS = {
     house: '<svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15L15 4l11 11"/><path d="M6 13v13h7v-7h4v7h7V13"/></svg>',
     car: '<svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18l3-7h14l3 7"/><rect x="3" y="18" width="24" height="7" rx="2"/><circle cx="8" cy="25" r="2.5"/><circle cx="22" cy="25" r="2.5"/></svg>',
     fork: '<svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v8"/><path d="M7 3v5a3 3 0 006 0V3"/><path d="M10 11v16"/><path d="M21 3c-2.5 3.5-2.5 8 0 11v13"/></svg>',
-    coffee: '<svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h15v6a7 7 0 01-7 7h-1a7 7 0 01-7-7v-6z"/><path d="M20 13h2a3.5 3.5 0 010 7h-2"/><path d="M9 8V5M13 8V5"/></svg>',
     beer: '<svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h14v18H6z"/><path d="M20 12h3a2 2 0 012 2v6a2 2 0 01-2 2h-3"/><path d="M6 9c0-2.5 3-4.5 7-4.5S20 6.5 20 9"/></svg>',
     gas: '<svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="13" height="20" rx="2"/><rect x="8" y="9" width="7" height="5" rx="1"/><path d="M18 11h3a2 2 0 012 2v6a2 2 0 01-2 2"/><line x1="5" y1="25" x2="18" y2="25"/></svg>',
     film: '<svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="24" height="20" rx="3"/><circle cx="15" cy="15" r="5"/><path d="M13 12.5l4.5 2.5-4.5 2.5z" fill="currentColor" stroke="none"/></svg>'
 };
 
-const CAT_ICONS = { '000000': 'euro', '011000': 'food', '045000': 'bolt', '041100': 'house', '070000': 'car', '111000': 'fork' };
+const CAT_ICONS = { '000000': 'euro', '011000': 'food', '045000': 'bolt', '041000': 'house', '070000': 'car', '111000': 'fork' };
 const CHART_YEARS = [1980, 1990, 1999, 2005, 2010, 2015, 2019, 2020, 2021, 2022, 2024, null];
 const CHART_SOURCES = {
     hpi: 'Eurostat · prc_hpi_q',
@@ -24,6 +23,9 @@ const CHART_SOURCES = {
     pension_spend: 'Eurostat · spr_exp_pens',
     spend_compare: 'Eurostat · gov_10a_exp (COFOG)',
     pension_sim: 'INE · salario medio + Eurostat · reemplazo y esperanza de vida',
+    debt_gdp: 'Eurostat · gov_10dd_edpt1',
+    debt_total: 'Eurostat · gov_10dd_edpt1',
+    debt_compare: 'Eurostat · gov_10a_exp + gov_10dd_edpt1',
     permits: 'Eurostat · sts_cobp_a',
     population: 'Eurostat · demo_pjan',
     inmigracion: 'Eurostat · migr_imm1ctz',
@@ -254,7 +256,6 @@ function renderInflation() {
     renderInflationCards();
     renderChartsInto('#inflationCharts', state.data.problems.inflation.charts);
     renderInflationLists();
-    renderPensions();
 }
 
 function buildMoneyChart() {
@@ -304,6 +305,8 @@ function chartValue(v, unit) {
     if (unit === 'thousand') return numFmt(v, 0) + (state.lang === 'es' ? ' mil' : 'k');
     if (unit === 'ratio') return numFmt(v, 0);
     if (unit === 'pct_gdp') return numFmt(v, 0) + '%';
+    if (unit === 'pct1') return numFmt(v, 1) + '%';
+    if (unit === 'bill_eur') return state.lang === 'es' ? numFmt(v, 1) + ' bill. €' : '€' + numFmt(v, 1) + 'T';
     if (unit === 'euro_hab') return state.lang === 'es' ? numFmt(v, 0) + ' €' : '€' + numFmt(v, 0);
     if (unit === 'euro') {
         if (Math.abs(v) >= 1e6) return (state.lang === 'es' ? numFmt(v / 1e6, 1) + ' M€' : '€' + numFmt(v / 1e6, 1) + 'M');
@@ -393,7 +396,7 @@ function tickLabel(period, step) {
 }
 
 function renderChart(spec) {
-    const W = 680, H = 275, padL = 62, padR = 18, padT = 28, padB = 36;
+    const W = 680, H = 275, padR = 18, padT = 28, padB = 36;
     const norm = (arr) => arr ? arr.map(r => [String(r[0]), r[1]]) : null;
     const pts = norm(spec.series);
     const pts2 = norm(spec.series2);
@@ -406,7 +409,10 @@ function renderChart(spec) {
     const span = (vmax - vmin) || 1;
     let lo = spec.type === 'bars' ? Math.min(0, vmin) : vmin - span * 0.08;
     let hi = vmax + span * 0.16;
-    const { ticks } = niceTicks(lo, hi, spec.type === 'bars' ? 4 : 5);
+    const { ticks } = niceTicks(lo, hi, spec.type === 'bars' ? 4 : 6);
+    // margen izquierdo según la etiqueta más ancha del eje Y (evita que se recorte)
+    const widest = Math.max(...ticks.map(tv => String(chartValue(tv, spec.unit)).length));
+    const padL = Math.max(62, Math.round(widest * 7) + 18);
 
     const periods = Array.from(new Set(
         pts.map(p => p[0])
@@ -414,10 +420,14 @@ function renderChart(spec) {
             .concat(pts3 ? pts3.map(p => p[0]) : [])
     ));
     const numericX = periods.every(p => /^\d+$/.test(p));
-    periods.sort(numericX ? (a, b) => Number(a) - Number(b) : undefined);
+    // con categorías (xLabels) se conserva el orden de la serie (p. ej. por magnitud)
+    if (!spec.xLabels) periods.sort(numericX ? (a, b) => Number(a) - Number(b) : undefined);
     const plotW = W - padL - padR, plotH = H - padT - padB;
+    const isBars = spec.type === 'bars';
     const x = (period) => {
         const i = periods.indexOf(period);
+        // las barras se centran en su franja: la primera no invade el eje Y
+        if (isBars) return padL + plotW * (i + 0.5) / periods.length;
         return padL + (periods.length === 1 ? plotW / 2 : plotW * i / (periods.length - 1));
     };
     const y = (v) => padT + plotH * (1 - (v - lo) / (hi - lo));
@@ -465,7 +475,11 @@ function renderChart(spec) {
         const bw = Math.max(1.5, plotW / periods.length * 0.7);
         pts.forEach(p => {
             const vy = y(p[1]);
-            svg += `<rect x="${(x(p[0]) - bw / 2).toFixed(0)}" y="${vy.toFixed(0)}" width="${bw.toFixed(1)}" height="${Math.max(1, y(lo) - vy).toFixed(0)}" fill="url(#barGrad)"/>`;
+            const hl = spec.highlight === p[0];
+            svg += `<rect x="${(x(p[0]) - bw / 2).toFixed(0)}" y="${vy.toFixed(0)}" width="${bw.toFixed(1)}" height="${Math.max(1, y(lo) - vy).toFixed(0)}" fill="url(#${hl ? 'barGradRed' : 'barGrad'})"/>`;
+            if (spec.showValues) {
+                svg += `<text x="${x(p[0]).toFixed(0)}" y="${(vy - 6).toFixed(0)}" text-anchor="middle" font-size="11" fill="${hl ? 'rgba(255,120,125,0.95)' : 'var(--text-muted)'}">${esc(chartValue(p[1], spec.unit))}</text>`;
+            }
         });
     } else {
         if (pts2) {
@@ -502,9 +516,11 @@ function renderChart(spec) {
     const idxs = xTickIndices(periods.map(p => [p, 0]), maxTicks, { padL, plotW });
     idxs.forEach((i, k) => {
         const tx = x(periods[i]);
-        const anchor = k === 0 ? 'start' : (i === periods.length - 1 ? 'end' : 'middle');
+        const anchor = isBars ? 'middle' : (k === 0 ? 'start' : (i === periods.length - 1 ? 'end' : 'middle'));
         svg += `<line x1="${tx.toFixed(1)}" y1="${padT + plotH}" x2="${tx.toFixed(1)}" y2="${padT + plotH + 5}" stroke="rgba(120,150,255,0.3)" stroke-width="1"/>`;
-        svg += `<text x="${tx.toFixed(1)}" y="${H - 11}" text-anchor="${anchor}" font-size="12" fill="var(--text-dim)">${esc(tickLabel(periods[i], step))}</text>`;
+        const raw = periods[i];
+        const text = (spec.xLabels && spec.xLabels[raw]) ? t(spec.xLabels[raw]) : tickLabel(raw, step);
+        svg += `<text x="${tx.toFixed(1)}" y="${H - 11}" text-anchor="${anchor}" font-size="12" fill="var(--text-dim)">${esc(text)}</text>`;
     });
 
     return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('chart.' + spec.id + '.title'))}">
@@ -514,6 +530,9 @@ function renderChart(spec) {
             </linearGradient>
             <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="rgba(255,204,0,0.75)"/><stop offset="100%" stop-color="rgba(255,204,0,0.18)"/>
+            </linearGradient>
+            <linearGradient id="barGradRed" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(255,90,95,0.9)"/><stop offset="100%" stop-color="rgba(255,90,95,0.3)"/>
             </linearGradient>
         </defs>
         ${svg}
@@ -535,6 +554,10 @@ const METRIC_VALUE = {
     sim_income_mid: (v) => fmtEuroCompact(v) + (state.lang === 'es' ? '/año' : '/yr'),
     sim_pension: (v) => fmtEuroCompact(v) + (state.lang === 'es' ? '/año' : '/yr'),
     sim_system_total: (v) => fmtEuroCompact(v),
+    debt_gdp: (v) => numFmt(v, 1) + '%',
+    debt_eur: (v) => (state.lang === 'es' ? numFmt(v / 1e6, 2) + ' bill. €' : '€' + numFmt(v / 1e6, 2) + 'T'),
+    interest_eur: (v) => (state.lang === 'es' ? numFmt(v, 0) + ' M€' : '€' + numFmt(v, 0) + 'M'),
+    interest_gdp: (v) => numFmt(v, 1) + '%',
     old_dep: (v) => numFmt(v, 1),
     old_dep_2050: (v) => numFmt(v, 1),
     pensioners_2050: (v) => numFmt(v, 1) + ' M',
@@ -887,6 +910,18 @@ function renderReferenceCards(sel, refs) {
     });
 }
 
+function renderDebt() {
+    const d = state.data.problems.debt;
+    if (!d) return;
+    renderMetricCards('#debtMetrics', d.metrics);
+    renderChartsInto('#debtCharts', d.charts);
+    renderMythList('#debtMythsList', I18N[state.lang].debtMyths);
+    renderClaimList('#debtCausesList', I18N[state.lang].debtCauses);
+    renderClaimList('#debtSolutionsList', I18N[state.lang].debtSolutions);
+    renderSources('#debtSources', d.sources);
+    $('#debtSub').innerHTML = I18N[state.lang]['debt.lede'];
+}
+
 function renderPensions() {
     const p = state.data.problems.pensions;
     renderMetricCards('#pensionsMetrics', p.metrics);
@@ -908,6 +943,8 @@ function renderPensions() {
 function renderAll() {
     renderSite();
     renderInflation();
+    renderPensions();
+    renderDebt();
     buildMoneyChart();
     renderHousing();
     buildCards();

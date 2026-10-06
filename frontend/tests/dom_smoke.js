@@ -97,6 +97,7 @@ const document = {
     '#inflCausesList', '#inflSolutionsList', '#inflSources', '#pensionsMetrics', '#pensionsCharts', '#pensionsSub',
     '#pensionsMythsList', '#pensionsCausesList', '#pensionsSolutionsList', '#pensionsSources',
     '#pensionsSimMetrics', '#pensionsSimCharts', '#pensionsAssumptions', '#pensionsSimLede', '#pensionsRefs',
+    '#debtMetrics', '#debtCharts', '#debtMythsList', '#debtCausesList', '#debtSolutionsList', '#debtSources', '#debtSub',
     '#priceGrid', '#faqList', '#yearSlider', '#sliderYear'
 ].forEach(sel => {
     const node = el('div');
@@ -108,7 +109,7 @@ const langBtns = [el('button'), el('button')];
 langBtns[0].dataset.lang = 'es'; langBtns[1].dataset.lang = 'en';
 document.registerAll('.lang-btn', langBtns);
 
-const i18nKeys = ['nav.housing', 'nav.inflation', 'nav.pensions', 'nav.faq', 'site.eyebrow', 'site.title', 'site.lede',
+const i18nKeys = ['nav.housing', 'nav.inflation', 'nav.pensions', 'nav.debt', 'nav.faq', 'site.eyebrow', 'site.title', 'site.lede',
     'live.label', 'rate.pre', 'rate.post', 'stats.sec', 'stats.min', 'stats.hour', 'stats.day',
     'housing.eyebrow', 'housing.title', 'housing.lede', 'housing.chartsTitle', 'housing.mythsTitle',
     'housing.causesTitle', 'housing.solutionsTitle', 'housing.sourcesTitle', 'housing.disclaimer',
@@ -120,6 +121,9 @@ const i18nKeys = ['nav.housing', 'nav.inflation', 'nav.pensions', 'nav.faq', 'si
     'metric.pension_spend.label', 'metric.old_dep.label', 'metric.old_dep_2050.label',
     'pensions.simTitle', 'pensions.simLede', 'pensions.assumptionsTitle', 'sim.note',
     'pensions.realTitle', 'pensions.realNote', 'pensions.refTitle', 'pensions.refLede', 'sim.refNote',
+    'debt.eyebrow', 'debt.title', 'debt.lede', 'debt.chartsTitle', 'debt.mythsTitle', 'debt.causesTitle',
+    'debt.solutionsTitle', 'debt.sourcesTitle', 'debt.disclaimer',
+    'metric.debt_gdp.label', 'metric.interest_eur.label', 'chart.debt_gdp.title', 'chart.debt_total.title', 'chart.debt_compare.title',
     'metric.sim_capital_mid.label', 'metric.sim_pension.label',
     'infl.mythsTitle', 'infl.causesTitle', 'infl.solutionsTitle', 'infl.sourcesTitle', 'quote.text', 'quote.cite',
     'infl.title.pre', 'infl.title.red', 'infl.sub', 'infl.sliderLabel', 'infl.hicpNote', 'infl.approxNote',
@@ -279,6 +283,20 @@ const i18nSrc = fs.readFileSync(path.join(FRONTEND, 'assets/i18n.js'), 'utf8');
     }
     const tickMs = Date.now() - t0;
     assert(tickMs < 300, `200 actualizaciones del odómetro en ${tickMs} ms`);
+    const debt = DATA.problems.debt;
+    assert(els['#debtMetrics'].children.length === debt.metrics.length, 'métricas de deuda: ' + els['#debtMetrics'].children.length);
+    assert(els['#debtCharts'].children.length === debt.charts.length, 'gráficos de deuda: ' + els['#debtCharts'].children.length);
+    assert(els['#debtMythsList'].children.length === 3, 'mitos de deuda: 3');
+    assert(els['#debtCausesList'].children.length === 5, 'causas de deuda: 5');
+    assert(els['#debtSolutionsList'].children.length === 5, 'soluciones de deuda: 5');
+    assert(els['#debtSources'].children.length === debt.sources.length, 'fuentes de deuda');
+    const debtChart = els['#debtCharts'].children[0];
+    assert(debtChart.querySelector('.chart-body').innerHTML.includes('pico 2020'), 'la deuda marca el máximo de 2020');
+    const debtTotal = els['#debtCharts'].children[1];
+    assert(debtTotal.querySelector('.chart-body').innerHTML.includes('fill="url(#barGradRed)"'), 'la deuda en euros resalta el último año');
+    const compare = els['#debtCharts'].children[2];
+    assert(compare.querySelector('.chart-body').innerHTML.includes('Intereses'), 'la comparativa traduce las categorías');
+    assert(compare.querySelector('.chart-body').innerHTML.includes('fill="url(#barGradRed)"'), 'la barra de intereses va resaltada');
     assert(els['#m3Chart'].children.length === 12, 'gráfico M3: 12 columnas');
     assert(els['#priceGrid'].children.length === DATA.hicp.categories.length + DATA.items.length, 'tarjetas de precios');
     assert(els['#faqList'].children.length === 11, 'FAQ: 11 preguntas');

@@ -7,7 +7,7 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import db, housing, inflation, payload, pensions
+from . import db, debt, housing, inflation, payload, pensions
 from .sources import damodaran, ecb
 
 log = logging.getLogger("esproblemas.etl")
@@ -28,6 +28,7 @@ def run(pool, full: bool = False) -> dict:
             "housing": housing.download_all,
             "inflation": inflation.download_all,
             "pensions": pensions.download_all,
+            "debt": debt.download_all,
         }
         store: dict = {}
         failed = []

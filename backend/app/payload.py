@@ -21,11 +21,6 @@ SLIDER_YEARS = [1996, 1999, 2002, 2008, 2015, 2020]
 
 EMBLEMATIC_ITEMS = [
     {
-        "id": "coffee", "icon": "coffee", "unit": "€", "approx": True,
-        "es": "Café en cafetería", "en": "Coffee in a café",
-        "prices": [0.85, 0.90, 1.00, 1.20, 1.30, 1.45, 1.90],
-    },
-    {
         "id": "beer", "icon": "beer", "unit": "€", "approx": True,
         "es": "Cerveza 0,5 l en bar", "en": "0.5 l beer in a bar",
         "prices": [1.20, 1.25, 1.35, 1.60, 1.80, 2.00, 2.60],
@@ -71,6 +66,13 @@ SIM_CONTRIBUTION_RATE = 0.37   # tipo total de cotizacion (Orden anual de cotiza
 SIM_YEARS = 40
 SIM_RETURNS = [0.02, 0.04, 0.06]   # retornos reales anuales (escenarios, no promesa)
 SIM_WITHDRAWAL = 0.04              # retirada anual sostenible asumida
+
+DEBT_SOURCES = [
+    {"label": "Eurostat · Government debt and interest (gov_10dd_edpt1)",
+     "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table"},
+    {"label": "Eurostat · Expenditure by function (gov_10a_exp)",
+     "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10a_exp/default/table"},
+]
 
 PENSIONS_SOURCES = [
     {"label": "Eurostat · Gasto en pensiones por tipo (spr_exp_pens)",
@@ -449,13 +451,65 @@ def _pensions_section(store: dict, meta: dict | None = None) -> dict:
                          "sources": PENSIONS_SOURCES, **simulator}}
 
 
+def _debt_section(store: dict) -> dict:
+    debt_gdp = _sorted(store.get("eu:debt_gdp_es") or {})
+    debt_eur = _sorted(store.get("eu:debt_eur_es") or {})
+    interest_gdp = _sorted(store.get("eu:interest_gdp_es") or {})
+    interest_eur = _sorted(store.get("eu:interest_eur_es") or {})
+    if not (debt_gdp and debt_eur and interest_gdp and interest_eur):
+        raise RuntimeError("faltan series de deuda pública")
+
+    last_y = debt_gdp[-1][0]
+    debt_now = debt_gdp[-1][1]
+    peak_y, peak_v = max(debt_gdp, key=lambda r: r[1])
+    debt_eur_now = debt_eur[-1][1]
+    interest_now = interest_eur[-1][1]
+    interest_pct = interest_gdp[-1][1]
+
+    # Deuda viva en euros (billones): el stock no baja nunca, sube cada año.
+    debt_stock = [[y, round(v / 1000, 2)] for y, v in _trim(debt_eur, "1995")]
+
+    # Comparación de la factura de intereses con otras partidas (COFOG, % del PIB)
+    cofog = {
+        "interest": interest_gdp[-1][1],
+        "health": (store.get("eu:cofog_health_es") or {}).get(last_y) or (store.get("eu:cofog_health_es") or {}).get("2024"),
+        "education": (store.get("eu:cofog_education_es") or {}).get("2024"),
+        "publicorder": (store.get("eu:cofog_publicorder_es") or {}).get("2024"),
+        "culture": (store.get("eu:cofog_culture_es") or {}).get("2024"),
+        "environment": (store.get("eu:cofog_environment_es") or {}).get("2024"),
+        "defence": (store.get("eu:cofog_defence_es") or {}).get("2024"),
+    }
+    compare = [[k, round(v, 1)] for k, v in sorted(cofog.items(), key=lambda x: -x[1]) if v is not None]
+    compare_labels = {k: f"chart.debt_compare.label.{k}" for k in cofog}
+
+    metrics = [
+        {"id": "debt_gdp", "value": round(debt_now, 1), "period": last_y, "source": "Eurostat"},
+        {"id": "debt_eur", "value": round(debt_eur_now), "period": last_y, "source": "Eurostat"},
+        {"id": "interest_eur", "value": round(interest_now), "period": last_y, "source": "Eurostat"},
+        {"id": "interest_gdp", "value": round(interest_pct, 1), "period": last_y, "source": "Eurostat"},
+    ]
+
+    charts = [
+        {"id": "debt_gdp", "type": "line", "unit": "pct_gdp",
+         "series": [[y, round(v, 1)] for y, v in _trim(debt_gdp, "1995")],
+         "peak": {"period": peak_y, "value": round(peak_v, 1)}},
+        {"id": "debt_total", "type": "bars", "unit": "bill_eur",
+         "series": debt_stock, "highlight": last_y},
+        {"id": "debt_compare", "type": "bars", "unit": "pct1",
+         "series": compare, "xLabels": compare_labels, "showValues": True,
+         "highlight": "interest"},
+    ]
+
+    return {"debt": {"metrics": metrics, "charts": charts, "sources": DEBT_SOURCES}}
+
+
 def build_payload(store: dict, meta: dict | None = None, generated_at: str | None = None) -> dict:
     """Construye el payload JSON completo."""
     now_iso = generated_at or datetime.now(timezone.utc).isoformat(timespec="seconds")
     monetary = _monetary_section(store)
     hicp = _hicp_section(store)
     problems = {**_housing_section(store), **_inflation_section(store, monetary, hicp),
-                **_pensions_section(store, meta)}
+                **_pensions_section(store, meta), **_debt_section(store)}
 
     m3_last = monetary["m3"]["basePeriod"]
     m3_date = datetime.strptime(m3_last, "%Y-%m").replace(tzinfo=timezone.utc)
@@ -477,6 +531,7 @@ def build_payload(store: dict, meta: dict | None = None, generated_at: str | Non
                 "housing": problems["housing"]["metrics"][0]["period"],
                 "realGdp": problems["inflation"]["metrics"][0]["period"],
                 "pensions": problems["pensions"]["metrics"][0]["period"],
+                "debt": problems["debt"]["metrics"][0]["period"],
             },
             "avgMonthSeconds": AVG_MONTH_SECONDS,
             "hicpBases": "2015=100 hasta 2025-12; encadenado con 2025=100 desde 2026-01",

@@ -23,7 +23,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "backend"))
 
-from app import housing, inflation, payload, pensions  # noqa: E402
+from app import debt, housing, inflation, payload, pensions  # noqa: E402
 from app.sources import damodaran, ecb  # noqa: E402
 
 
@@ -34,7 +34,7 @@ def main() -> int:
     args = parser.parse_args()
 
     started = time.time()
-    store = {**ecb.download_all(full=True), **housing.download_all(), **inflation.download_all(), **pensions.download_all()}
+    store = {**ecb.download_all(full=True), **housing.download_all(), **inflation.download_all(), **pensions.download_all(), **debt.download_all()}
     meta = {}
     try:
         meta["ref:real_returns"] = damodaran.download_all()

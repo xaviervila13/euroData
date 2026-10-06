@@ -25,7 +25,7 @@ HICP_CATEGORIES = [
     ("000000", "Índice general", "All items"),
     ("011000", "Alimentación", "Food"),
     ("045000", "Electricidad y gas", "Electricity & gas"),
-    ("041100", "Alquiler de vivienda", "Rents"),
+    ("041000", "Alquiler de vivienda", "Rents"),
     ("070000", "Transporte", "Transport"),
     ("111000", "Restaurantes y bares", "Restaurants & cafés"),
 ]
