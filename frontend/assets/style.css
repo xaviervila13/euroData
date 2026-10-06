@@ -51,12 +51,6 @@ header::after {
 .header-logo .logo-icon svg { width: 100%; height: 100%; }
 .header-logo .brand-main { color: white; }
 .header-logo .brand-sub { color: var(--gold); margin-left: 5px; font-weight: 600; }
-.brrr-tag {
-    font-family: var(--font-mono); font-size: 0.55rem; font-weight: 700;
-    color: var(--gold); background: var(--gold-soft); border: 1px solid var(--gold-border);
-    padding: 2px 8px; border-radius: 4px; letter-spacing: 0.1em;
-    animation: brrrPulse 1.6s ease-in-out infinite;
-}
 .header-brand { justify-self: start; }
 .header-links {
     justify-self: center;
@@ -84,7 +78,6 @@ header::after {
 .lang-btn:hover { color: white; }
 .lang-btn.active { color: var(--bg); background: var(--gold); }
 
-@keyframes brrrPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 
 .hero {
     position: relative; min-height: 56vh;
